@@ -1,0 +1,23 @@
+{
+  "name": "torob-hozori",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.28.0",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "start": "pnpm --filter web start",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "db:migrate": "pnpm --filter @torob/db migrate",
+    "ingest": "pnpm --filter @torob/ingest ingest",
+    "demo:reset": "pnpm --filter @torob/ingest demo:reset",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "3.6.2",
+    "typescript": "5.9.3"
+  }
+}
