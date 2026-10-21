@@ -8,7 +8,7 @@ import { getSessionId } from "@/lib/server/session";
 export const dynamic = "force-dynamic";
 
 const Body = z.object({
-  items: z.array(z.object({ label: z.string().min(2).max(80), productId: z.string().nullable().optional() })).min(1).max(8),
+  items: z.array(z.object({ label: z.string().min(2).max(80), productId: z.string().max(60).nullable().optional() })).min(1).max(10),
   origin: z.object({ lat: z.number(), lon: z.number(), label: z.string(), source: z.enum(["gps", "preset", "map", "default"]) }).optional(),
   startAt: z.string().datetime().optional(),
 });
