@@ -40,6 +40,13 @@ function startDate(key: (typeof START)[number]["key"]) {
   return d;
 }
 
+/** List entries are "label" or "label~productId" (a build sends exact products). */
+const toItem = (s: string) => {
+  const [label, productId] = s.split("~");
+  return { label: label!, productId: productId ?? null };
+};
+const itemLabel = (s: string) => s.split("~")[0]!;
+
 const time = (iso: string) => new Intl.DateTimeFormat("fa-IR", { timeZone: "Asia/Tehran", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 
 export function TripPlanner({ initial }: { initial: string[] }) {
@@ -58,7 +65,7 @@ export function TripPlanner({ initial }: { initial: string[] }) {
       const r = await fetch("/api/trip", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: list.map((label) => ({ label })), origin, startAt: startDate(start).toISOString() }),
+        body: JSON.stringify({ items: list.map(toItem), origin, startAt: startDate(start).toISOString() }),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
@@ -101,8 +108,8 @@ export function TripPlanner({ initial }: { initial: string[] }) {
           <div className="mt-3 flex flex-wrap gap-2">
             {items.map((it) => (
               <span key={it} className="inline-flex h-9 items-center gap-1 rounded-full bg-brand-soft ps-3.5 pe-1.5 text-[13px] font-medium text-brand">
-                {it}
-                <button aria-label={`حذف ${it}`} onClick={() => setItems(items.filter((x) => x !== it))} className="grid size-6 place-items-center rounded-full hover:bg-brand/10">
+                {itemLabel(it)}
+                <button aria-label={`حذف ${itemLabel(it)}`} onClick={() => setItems(items.filter((x) => x !== it))} className="grid size-6 place-items-center rounded-full hover:bg-brand/10">
                   <X className="size-3.5" />
                 </button>
               </span>

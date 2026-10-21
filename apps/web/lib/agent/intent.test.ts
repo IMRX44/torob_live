@@ -54,3 +54,17 @@ describe("parseVisitTime", () => {
     expect(parseVisitTime("گوشی سامسونگ", NOW)).toBeNull();
   });
 });
+
+describe("build requests", () => {
+  it("treats the budget as the whole build", () => {
+    const r = parseIntent("میخوام یه سیستم گیمینگ با ۱۰۰ میلیون ببندم", NOW);
+    expect(r.wantsBuild).toBe(true);
+    expect(r.buildBudget).toBe(100_000_000);
+    expect(r.filters.maxPrice).toBeUndefined();
+  });
+  it("detects build intent without budget", () => {
+    expect(parseIntent("یه سیستم برای گیم میخوام بسازم کمکم کن", NOW).wantsBuild).toBe(true);
+    expect(parseIntent("هندزفری تا ۳ میلیون", NOW).wantsBuild).toBe(false);
+    expect(parseIntent("دوربین مداربسته برای مغازه", NOW).wantsBuild).toBe(false);
+  });
+});

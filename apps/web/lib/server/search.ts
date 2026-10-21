@@ -112,7 +112,10 @@ export async function searchProducts(p: SearchParams): Promise<ProductSummary[]>
   return (await searchProductsDetailed(p)).items;
 }
 
-export async function searchProductsDetailed(p: SearchParams): Promise<{ items: ProductSummary[]; dropped: string[] }> {
+export async function searchProductsDetailed(input: SearchParams): Promise<{ items: ProductSummary[]; dropped: string[] }> {
+  // Prices are bigint in SQL: callers may compute budgets with fractions.
+  const round = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? null : Math.round(v));
+  const p: SearchParams = { ...input, minPrice: round(input.minPrice), maxPrice: round(input.maxPrice) };
   const db = sql();
   const rawTokens = normalizeFa(p.q).split(" ").filter((t) => t.length > 1 || /\d/.test(t)).slice(0, 6);
   let groups = expandQuery(p.q);

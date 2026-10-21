@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Building2, MessageCircleQuestion, Search, Scale, MapPinned, Route } from "lucide-react";
+import { Building2, Cpu, MessageCircleQuestion, Search, Scale, MapPinned, Route } from "lucide-react";
 import { toPersianDigits } from "@torob/core";
 import { Composer } from "./composer";
 import { MallCard } from "@/components/cards/mall-card";
@@ -10,6 +10,7 @@ import { Section } from "@/components/ui/section";
 import type { MallSummary } from "@/lib/server/malls";
 
 const EXAMPLES = [
+  "یه سیستم گیمینگ با ۱۰۰ میلیون می‌خوام",
   "هندزفری بلوتوثی برای باشگاه تا ۳ میلیون",
   "شارژر اصلی آیفون که الان باز باشه",
   "گوشی سامسونگ قسطی نزدیک جمهوری",
@@ -65,6 +66,20 @@ export function Hero({ onSend, malls, categories }: { onSend: (t: string) => voi
           </motion.div>
         ))}
       </div>
+
+      <button
+        type="button"
+        onClick={() => onSend("کمکم کن یه سیستم گیمینگ با ۱۰۰ میلیون بسازم")}
+        className="mx-4 mt-5 flex w-[calc(100%-2rem)] items-center gap-3 rounded-[20px] bg-gradient-to-bl from-fg to-[oklch(0.3_0.03_260)] p-3.5 text-start text-bg"
+      >
+        <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-white/15">
+          <Cpu className="size-5" />
+        </span>
+        <span className="flex-1">
+          <b className="block text-[14px]">می‌خوای یه سیستم بسازی؟</b>
+          <span className="text-[12px] opacity-80">کامپیوتر گیمینگ، دوربین مغازه یا ست صوتی: قطعات سازگار را با بودجه‌ات از مغازه‌ها می‌چینم.</span>
+        </span>
+      </button>
 
       <Link href="/trip" className="mx-4 mt-3 flex items-center gap-3 rounded-[20px] bg-gradient-to-l from-info-soft to-brand-soft p-3.5">
         <span className="grid size-10 place-items-center rounded-2xl bg-elev text-brand shadow-sm">

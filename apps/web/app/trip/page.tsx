@@ -8,7 +8,7 @@ export default async function TripPage({ searchParams }: { searchParams: Promise
   const { items } = await searchParams;
   return (
     <AppShell>
-      <TripPlanner initial={items ? items.split("|").filter(Boolean).slice(0, 8) : []} />
+      <TripPlanner initial={items ? items.split("|").filter(Boolean).slice(0, 10) : []} />
     </AppShell>
   );
 }

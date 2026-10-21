@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { AnimatePresence, motion } from "motion/react";
-import { Plus, RotateCcw } from "lucide-react";
+import { ArrowDown, Plus, RotateCcw } from "lucide-react";
 import type { AgentMessage } from "@/lib/agent/messages";
 import { useApp } from "@/lib/store";
 import { Composer } from "./composer";
@@ -43,6 +43,14 @@ export function Assistant({
   const [note, setNote] = useState<string | null>(null);
   const { origin, filters, setFilters, setOrigin } = useApp();
   const bottom = useRef<HTMLDivElement>(null);
+  const [atBottom, setAtBottom] = useState(true);
+  useEffect(() => {
+    const el = bottom.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setAtBottom(Boolean(e?.isIntersecting)), { rootMargin: "0px 0px 160px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  });
 
   const transport = useMemo(() => new DefaultChatTransport<AgentMessage>({ api: "/api/chat" }), []);
   const { messages, sendMessage, status, stop, setMessages, error, regenerate } = useChat<AgentMessage>({
@@ -161,6 +169,20 @@ export function Assistant({
       {started ? (
         <div className="fixed inset-x-0 bottom-14 z-30 px-3 pb-2 lg:bottom-0 lg:pb-4 lg:ps-64">
           <div className="mx-auto max-w-2xl">
+            <AnimatePresence>
+              {!atBottom ? (
+                <motion.button
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  onClick={() => bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" })}
+                  aria-label="رفتن به آخرین پیام"
+                  className="mx-auto mb-2 flex h-9 items-center gap-1.5 rounded-full border border-line bg-elev px-3.5 text-[12px] font-semibold shadow-float"
+                >
+                  <ArrowDown className="size-4" /> آخرین پیام
+                </motion.button>
+              ) : null}
+            </AnimatePresence>
             <CompareTray />
             <Composer onSend={send} onStop={stop} busy={busy} placeholder="ادامه بده… مثلاً «کدومش نزدیک‌تره؟»" />
           </div>

@@ -5,6 +5,10 @@ import { searchProducts } from "../server/search";
 import { getProductsByIds, shopsForProduct, withNearby } from "../server/catalog";
 import { buildTrip } from "../server/trip";
 import { listInquiries } from "../server/inquiries";
+import { sql } from "../server/db";
+import { sanitizeDeep } from "./guard";
+import { boardDdr, boardSocket, cpuBoardCompatible, ramBoardCompatible } from "@torob/core";
+import type { ProductSummary } from "../types";
 import type { Filters, Origin, ProductDetail, ShopOffer } from "../types";
 
 export interface ToolCtx {
@@ -48,8 +52,225 @@ export function alignSpecs(products: ProductDetail[]) {
   return rows.slice(0, 18);
 }
 
-export function buildTools(ctx: ToolCtx) {
+let categoryCache: { at: number; names: Set<string> } | null = null;
+async function knownCategories() {
+  if (!categoryCache || Date.now() - categoryCache.at > 10 * 60_000) {
+    const rows = await sql()<{ name: string }[]>`SELECT name FROM categories`;
+    categoryCache = { at: Date.now(), names: new Set(rows.map((r) => r.name)) };
+  }
+  return categoryCache.names;
+}
+
+type Slot = { key: string; label: string; query: string; category?: string; share: number; optional?: boolean; exclude?: string[] };
+
+/** Words that mean "not a PC part" for common slots (an organ's mainboard is not a motherboard). */
+const DEFAULT_EXCLUDE: Record<string, string[]> = {
+  مادربرد: ["ارگ", "کیبورد", "موبایل", "گوشی", "لپ تاپ", "لپتاپ", "تلویزیون", "ماشین لباسشویی", "کولر"],
+  پردازنده: ["گوشی", "موبایل", "لپ تاپ"],
+  "رم کامپیوتر": ["لپ تاپ", "لپتاپ", "نوت بوک"],
+  "کارت گرافیک": ["لپ تاپ"],
+};
+
+/** Parts whose catalog neighbours are easy to confuse: a PC power supply is not a power bank or a 12V industrial unit. */
+const SLOT_REQUIRE: [RegExp, RegExp][] = [
+  [/psu|power ?supply|پاور|منبع تغذیه/i, /(کامپیوتر|atx|گیمینگ|corsair|کورسیر|cooler ?master|کولر ?مستر|seasonic|سیسونیک|thermaltake|ترمالتیک)/i],
+  [/case|کیس/i, /کیس/],
+  [/cooler|خنک|فن پردازنده/i, /(پردازنده|cpu|خنک کننده)/i],
+];
+
+/**
+ * Best product for one build slot. Relevance first (top search hits), then the most capable
+ * listing that fits the slot budget; if the precise model is out of budget, widen to the whole
+ * category inside the budget before giving up.
+ */
+async function fillSlot(slot: Slot, slotBudget: number, origin: Origin) {
+  const cats = await knownCategories();
+  const category = slot.category && cats.has(slot.category) ? slot.category : null;
+  const banned = [...(slot.exclude ?? []), ...(category ? DEFAULT_EXCLUDE[category] ?? [] : [])].map((w) => w.trim()).filter(Boolean);
+  const required = SLOT_REQUIRE.find(([slotRe]) => slotRe.test(slot.key) || slotRe.test(slot.label))?.[1] ?? null;
+  const usable = (xs: ProductSummary[]) =>
+    xs.filter(
+      (x) =>
+        x.priceMin != null &&
+        x.sellerCount > 0 &&
+        !banned.some((w) => x.title.includes(w)) &&
+        !/پاوربانک|power ?bank/i.test(x.title) &&
+        (!required || required.test(x.title)),
+    );
+  const value = (p: ProductSummary) => p.priceMin! * (1 + Math.log1p(p.sellerCount) * 0.12);
+  const ceiling = Math.round(slotBudget * 1.15);
+
+  // 1) the requested model, inside the budget, among the most relevant hits
+  let pool = usable(await searchProducts({ q: slot.query, category, maxPrice: ceiling, limit: 10 }));
+  let status: "ok" | "over" | "missing" = "ok";
+  let widened = false;
+  // 2) anything good in the same category that fits the budget
+  if (!pool.length && category) {
+    pool = usable(await searchProducts({ q: category, category, maxPrice: ceiling, limit: 30 }));
+    widened = true;
+  }
+  // 3) nothing fits: cheapest relevant option, flagged as over budget
+  if (!pool.length) {
+    pool = usable(await searchProducts({ q: slot.query, category, limit: 10 })).sort((a, b) => a.priceMin! - b.priceMin!);
+    status = pool.length ? "over" : "missing";
+  }
+  const relevant = widened ? pool : pool.slice(0, 8);
+  const pick = status === "ok" ? [...relevant].sort((a, b) => value(b) - value(a))[0] ?? null : (pool[0] ?? null);
+  const cheaper = pool.filter((p) => pick && p.id !== pick.id && p.priceMin! < pick.priceMin!).sort((a, b) => b.priceMin! - a.priceMin!)[0] ?? null;
+  // Stronger option: the next step up for the same query, or anywhere in the category if the
+  // precise model was unaffordable (so leftover budget can still upgrade, e.g. GTX 1650 → RTX 3050).
+  const upFrom = async (q: string) =>
+    usable(await searchProducts({ q, category, minPrice: pick!.priceMin! + 1, maxPrice: Math.round(slotBudget * 1.8), limit: 12 }))
+      .filter((p) => p.id !== pick!.id)
+      .sort((a, b) => a.priceMin! - b.priceMin!)[0] ?? null;
+  let stepUp = pick ? await upFrom(widened && category ? category : slot.query) : null;
+  if (pick && !stepUp && category && !widened) stepUp = await upFrom(category);
+  const options = await withNearby([pick, cheaper, stepUp].filter((p): p is ProductSummary => Boolean(p)), origin);
+  const byId = new Map(options.map((o) => [o.id, o]));
   return {
+    key: slot.key,
+    label: slot.label,
+    optional: Boolean(slot.optional),
+    budget: Math.round(slotBudget),
+    status,
+    pick: pick ? byId.get(pick.id)! : null,
+    cheaper: cheaper ? byId.get(cheaper.id)! : null,
+    stepUp: stepUp ? byId.get(stepUp.id)! : null,
+  };
+}
+
+type Filled = Awaited<ReturnType<typeof fillSlot>>;
+const isSlot = (s: Filled, cat: string, words: RegExp) => s.key.toLowerCase().match(words) || s.label.match(words) || s.pick?.category === cat;
+
+async function categoryPool(category: string, maxPrice: number, limit = 60) {
+  const ban = DEFAULT_EXCLUDE[category] ?? [];
+  return (await searchProducts({ q: category, category, maxPrice, limit })).filter(
+    (p) => p.priceMin != null && p.sellerCount > 0 && !ban.some((w) => p.title.includes(w)),
+  );
+}
+
+/**
+ * Makes CPU, motherboard and RAM actually fit together: best compatible CPU/board pair inside
+ * their combined budget (socket from model/chipset names), then RAM of the board's DDR generation.
+ */
+async function enforceCompatibility(slots: Filled[], origin: Origin) {
+  const cpu = slots.find((s) => isSlot(s, "پردازنده", /cpu|پردازنده/i));
+  const board = slots.find((s) => isSlot(s, "مادربرد", /motherboard|mainboard|board|مادربرد/i));
+  const ram = slots.find((s) => isSlot(s, "رم کامپیوتر", /ram|memory|رم/i));
+  const compat: { socket: string | null; ddr: string | null; cpuBoard: boolean | null; ram: boolean | null } = { socket: null, ddr: null, cpuBoard: null, ram: null };
+  if (!cpu || !board) return compat;
+
+  const pairBudget = (cpu.budget + board.budget) * 1.15;
+  const [cpus, boards] = await Promise.all([categoryPool("پردازنده", pairBudget), categoryPool("مادربرد", pairBudget)]);
+  const value = (p: ProductSummary) => p.priceMin! * (1 + Math.log1p(p.sellerCount) * 0.1);
+  let best: { c: ProductSummary; b: ProductSummary; score: number } | null = null;
+  for (const c of cpus)
+    for (const b of boards) {
+      if (cpuBoardCompatible(c.title, b.title) !== true) continue;
+      const sum = c.priceMin! + b.priceMin!;
+      if (sum > pairBudget) continue;
+      const score = value(c) * 1.25 + value(b);
+      if (!best || score > best.score) best = { c, b, score };
+    }
+  if (!best) {
+    compat.cpuBoard = cpu.pick && board.pick ? cpuBoardCompatible(cpu.pick.title, board.pick.title) : null;
+    return compat;
+  }
+  const others = (pool: ProductSummary[], partner: ProductSummary, chosen: ProductSummary, isCpu: boolean) => {
+    const ok = pool.filter((p) => p.id !== chosen.id && (isCpu ? cpuBoardCompatible(p.title, partner.title) : cpuBoardCompatible(partner.title, p.title)) === true);
+    return {
+      cheaper: ok.filter((p) => p.priceMin! < chosen.priceMin!).sort((a, b) => b.priceMin! - a.priceMin!)[0] ?? null,
+      stepUp: ok.filter((p) => p.priceMin! > chosen.priceMin!).sort((a, b) => a.priceMin! - b.priceMin!)[0] ?? null,
+    };
+  };
+  const co = others(cpus, best.b, best.c, true);
+  const bo = others(boards, best.c, best.b, false);
+  const enrich = await withNearby([best.c, best.b, co.cheaper, co.stepUp, bo.cheaper, bo.stepUp].filter((p): p is ProductSummary => Boolean(p)), origin);
+  const get = (p: ProductSummary | null) => (p ? enrich.find((e) => e.id === p.id) ?? p : null);
+  Object.assign(cpu, { pick: get(best.c), cheaper: get(co.cheaper), stepUp: get(co.stepUp), status: "ok" });
+  Object.assign(board, { pick: get(best.b), cheaper: get(bo.cheaper), stepUp: get(bo.stepUp), status: "ok" });
+  compat.cpuBoard = true;
+  compat.socket = boardSocket(best.b.title);
+  compat.ddr = boardDdr(best.b.title);
+
+  if (ram && compat.ddr) {
+    // A compatible stick slightly over budget beats an incompatible one: widen before giving up.
+    const fits = (r: ProductSummary) => ramBoardCompatible(r.title, best.b.title) === true;
+    let status: "ok" | "over" = "ok";
+    let matching = (await categoryPool("رم کامپیوتر", ram.budget * 1.3, 60)).filter(fits);
+    if (!matching.length) {
+      matching = (await categoryPool("رم کامپیوتر", ram.budget * 5, 60)).filter(fits).sort((a, b) => a.priceMin! - b.priceMin!);
+      status = "over";
+    }
+    const pick = status === "ok" ? [...matching].sort((a, b) => value(b) - value(a))[0] : matching[0];
+    if (pick) {
+      const stepUp = matching.filter((r) => r.priceMin! > pick.priceMin!).sort((a, b) => a.priceMin! - b.priceMin!)[0] ?? null;
+      const enriched = await withNearby([pick, stepUp].filter((p): p is ProductSummary => Boolean(p)), origin);
+      Object.assign(ram, { pick: enriched[0], cheaper: null, stepUp: stepUp ? enriched[1] : null, status });
+      compat.ram = true;
+    } else compat.ram = ram.pick ? ramBoardCompatible(ram.pick.title, best.b.title) : null;
+  }
+  return compat;
+}
+
+/** If the build overshoots, step the parts with the biggest overshoot down to their cheaper option. */
+function rebalance<T extends { pick: ProductSummary | null; cheaper: ProductSummary | null; stepUp: ProductSummary | null; budget: number }>(slots: T[], budget: number) {
+  const total = () => slots.reduce((s, x) => s + (x.pick?.priceMin ?? 0), 0);
+  const order = [...slots].sort((a, b) => (b.pick?.priceMin ?? 0) - b.budget - ((a.pick?.priceMin ?? 0) - a.budget));
+  for (const s of order) {
+    if (total() <= budget) break;
+    if (s.cheaper && s.pick) {
+      s.stepUp = s.pick;
+      s.pick = s.cheaper;
+      s.cheaper = null;
+    }
+  }
+  // Money left over: upgrade the parts with the biggest budget share first (the GPU in a gaming build).
+  for (const s of [...slots].sort((a, b) => b.budget - a.budget)) {
+    if (!s.pick || !s.stepUp) continue;
+    if (total() - s.pick.priceMin! + s.stepUp.priceMin! > budget) continue;
+    const prev = s.pick;
+    s.pick = s.stepUp;
+    s.cheaper = prev;
+    s.stepUp = null;
+  }
+  return total();
+}
+
+export function buildTools(ctx: ToolCtx) {
+  const tools = {
+    planBuild: tool({
+      description:
+        "برای «یک سیستم/مجموعه بساز» با بودجه (کامپیوتر گیمینگ، سیستم رندر، ست استریم، دوربین مداربسته مغازه، ست صوتی ماشین…): قطعات لازم را با سهم بودجه تعریف کن تا برای هر قطعه محصول واقعی موجود در مغازه‌ها، گزینه ارزان‌تر و گزینه قوی‌تر پیدا شود و جمع کل حساب شود. نام دسته دقیق را اگر می‌دانی بده (مثل «پردازنده»، «کارت گرافیک»، «مادربرد»، «رم کامپیوتر»، «حافظه SSD»، «مانیتور»، «کیبورد»، «ماوس»، «هدفون، هدست و هندزفری»، «منبع تغذیه سوییچینگ»).",
+      inputSchema: z.object({
+        title: z.string().describe("مثل «سیستم گیمینگ ۱۰۰ میلیونی»"),
+        budget: z.number().positive().describe("کل بودجه به تومان"),
+        purpose: z.string().optional().describe("کاربرد، مثل «بازی‌های سنگین 1080p»"),
+        slots: z
+          .array(
+            z.object({
+              key: z.string(),
+              label: z.string().describe("نام قطعه برای کاربر"),
+              query: z.string().describe("عبارت جستجوی کوتاه، مثل «کارت گرافیک RTX 4060»"),
+              category: z.string().optional(),
+              share: z.number().min(0.01).max(0.9).describe("سهم از بودجه کل"),
+              optional: z.boolean().optional(),
+              exclude: z.array(z.string()).max(6).optional().describe("کلماتی که نباید در عنوان باشد، مثل «لپ تاپ» برای رم دسکتاپ"),
+            }),
+          )
+          .min(2)
+          .max(10),
+        notes: z.array(z.string()).max(4).optional().describe("نکات سازگاری و خرید، کوتاه"),
+      }),
+      execute: async ({ title, budget, purpose, slots, notes }) => {
+        const totalShare = slots.reduce((s, x) => s + x.share, 0) || 1;
+        const filled = await Promise.all(slots.map((s) => fillSlot(s, (budget * s.share) / totalShare, ctx.origin)));
+        const compat = await enforceCompatibility(filled, ctx.origin);
+        const total = rebalance(filled, budget);
+        return { title, budget, purpose: purpose ?? null, slots: filled, total, notes: notes ?? [], compat };
+      },
+    }),
+
     searchCatalog: tool({
       description: "جستجوی دوباره در کاتالوگ با عبارت دقیق‌تر یا محدودیت قیمت/دسته. خروجی فهرست فشرده محصولات است.",
       inputSchema: z.object({
@@ -223,6 +444,11 @@ export function buildTools(ctx: ToolCtx) {
       },
     }),
   };
+  // The model only ever sees sanitised, image-free copies of tool results (the UI gets the full data).
+  for (const t of Object.values(tools)) {
+    (t as { toModelOutput?: (o: unknown) => unknown }).toModelOutput = (o: unknown) => ({ type: "json", value: sanitizeDeep(o) });
+  }
+  return tools;
 }
 
 export type AgentTools = ReturnType<typeof buildTools>;
