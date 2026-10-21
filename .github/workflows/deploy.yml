@@ -1,0 +1,25 @@
+name: Deploy to Liara
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Runs only once the repository has the Liara secrets configured.
+    if: ${{ vars.LIARA_APP != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g @liara/cli@7
+      - name: Deploy
+        run: liara deploy --app "${{ vars.LIARA_APP }}" --api-token "${{ secrets.LIARA_API_TOKEN }}" --port 3000 --platform docker --detach

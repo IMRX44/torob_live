@@ -39,7 +39,7 @@ interface ShopRow {
   _mallKey: string | null;
 }
 
-const json = <T>(s: string | null, fallback: T): T => {
+const json = <T>(s: string | null | undefined, fallback: T): T => {
   if (!s) return fallback;
   try {
     return JSON.parse(s) as T;
@@ -73,14 +73,14 @@ export async function ingest(sql: Sql, zipPath: string, log = console.log) {
       name: r.name ?? "فروشگاه",
       name_is_real: Boolean(r.instagram || r.website_url),
       address: r.address ?? "",
-      area: r.location_label,
+      area: r.location_label ?? null,
       lat: Number(r.lat),
       lon: Number(r.lon),
       categories,
       categories_norm: normalizeFa(categories.join(" | ")),
       phone: contacts.find((c) => c.channel === "phone")?.display_number ?? null,
       instagram: insta?.profile_url ?? null,
-      website: r.website_url,
+      website: r.website_url ?? null,
       fast_delivery: r.supports_fast_delivery == null ? null : r.supports_fast_delivery === "true",
       hours: json(r.weekly_hours, {}),
       hours_known: hours.known,

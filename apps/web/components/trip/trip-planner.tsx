@@ -171,7 +171,7 @@ export function TripPlanner({ initial }: { initial: string[] }) {
               <LazyMap origin={origin} pins={pins} />
             </div>
 
-            <ol className="relative mt-5 space-y-4 border-s-2 border-dashed border-line ps-5">
+            <ol className="relative ms-3 mt-5 space-y-4 border-s-2 border-dashed border-line ps-5">
               <li className="relative">
                 <span className="absolute -start-[29px] top-0.5 size-4 rounded-full border-4 border-elev bg-info" />
                 <p className="text-[12px] text-muted">حرکت {time(trip.startAt)} از {trip.origin.label}</p>

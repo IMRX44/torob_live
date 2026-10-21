@@ -113,7 +113,7 @@ export function MallView({ mall, product }: { mall: MallDetail; product: { id: s
               همه مغازه‌های این پاساژ را دیدی. <Link className="font-bold text-brand" href={product ? `/p/${product.id}` : "/"}>جایگزین‌های نزدیک</Link>
             </p>
           )}
-          <ol className="relative space-y-3 border-s-2 border-dashed border-line ps-5">
+          <ol className="relative ms-3 space-y-3 border-s-2 border-dashed border-line ps-5">
             {sellers.map((s, i) => {
               const c = checks[s.id];
               return (
@@ -132,7 +132,7 @@ export function MallView({ mall, product }: { mall: MallDetail; product: { id: s
                       </Link>
                       <b className="shrink-0 text-[13px]">{s.productHint?.price ? formatToman(s.productHint.price) : "بپرسید"}</b>
                     </div>
-                    <div className="mt-2 flex items-center justify-between gap-2">
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                       <HoursBadge open={s.open} />
                       <div className="flex gap-1.5">
                         <button onClick={() => mark(s, "has")} className={cn("flex h-8 items-center gap-1 rounded-xl px-2.5 text-[12px] font-semibold", c === "has" ? "bg-ok text-white" : "bg-ok-soft text-ok")}>
