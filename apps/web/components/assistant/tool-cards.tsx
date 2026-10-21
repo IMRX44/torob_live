@@ -30,6 +30,7 @@ export function ToolPending({ name }: { name: string }) {
     proposeInquiry: "دارم پیام استعلام را آماده می‌کنم…",
     planTrip: "دارم کوتاه‌ترین مسیر خرید را می‌چینم…",
     suggestList: "دارم لیست خرید کامل را آماده می‌کنم…",
+    planBuild: "دارم برای هر قطعه بهترین گزینه موجود در مغازه‌ها را پیدا می‌کنم…",
     myInquiries: "دارم جواب فروشنده‌ها را چک می‌کنم…",
   };
   return (

@@ -22,6 +22,9 @@ const Schema = z.object({ items: z.array(z.string().min(4).max(140)).min(4).max(
 export async function GET(req: NextRequest) {
   const category = (req.nextUrl.searchParams.get("category") ?? "").slice(0, 120);
   if (!category) return json({ items: GENERIC, source: "generic" });
+  // Only real catalog categories reach the prompt and the shared cache (no stored prompt injection).
+  const [known] = await sql()<{ name: string }[]>`SELECT name FROM categories WHERE name = ${category}`;
+  if (!known) return json({ items: GENERIC, source: "generic" });
   const [cached] = await sql()<{ items: string[] }[]>`SELECT items FROM checklists WHERE category = ${category}`;
   if (cached) return json({ items: cached.items, source: "cache" });
   if (!llmEnabled()) return json({ items: GENERIC, source: "generic" });

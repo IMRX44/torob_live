@@ -5,6 +5,7 @@ import { PicksCard } from "./picks-card";
 import { CompareCard, InquiryProposalCard, MyInquiriesCard, ShopsCard, ToolPending, TripCard } from "./tool-cards";
 import { WhereCard } from "./where-card";
 import { ListCard } from "./list-card";
+import { BuildCard } from "./build-card";
 import { cn } from "@/lib/cn";
 
 /** Light formatting for assistant text: **bold** and line breaks. */
@@ -62,6 +63,8 @@ export function MessageView({ message, onSend, isLatest, busy }: { message: Agen
               return <InquiryProposalCard key={i} data={out} />;
             case "planTrip":
               return <TripCard key={i} data={out} />;
+            case "planBuild":
+              return <BuildCard key={i} data={out} />;
             case "suggestList":
               return <ListCard key={i} data={out} />;
             case "myInquiries":
