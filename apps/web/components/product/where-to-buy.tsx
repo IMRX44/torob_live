@@ -116,8 +116,8 @@ export function WhereToBuy({ productId, productTitle }: { productId: string; pro
         <div className={cn("transition-opacity", loading && "opacity-60")}>
           <p className="px-4 pt-3 text-[13px] text-muted">
             <b className="text-fg">{toPersianDigits(offers.length)}</b> فروشنده
-            {filters.openOnArrival ? "" : ` · ${toPersianDigits(openCount)} تا موقع رسیدن باز`}
-            {cheapest ? ` · ارزان‌ترین ${formatToman(cheapest.price)}` : ""}
+            {filters.openOnArrival ? "" : `، ${toPersianDigits(openCount)} تا موقع رسیدن باز`}
+            {cheapest ? `، ارزان‌ترین ${formatToman(cheapest.price)}` : ""}
             <span className="block text-[11px] text-subtle">زمان رسیدن و باز بودن از «{origin.label}» حساب شده</span>
           </p>
 

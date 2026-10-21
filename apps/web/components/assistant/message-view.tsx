@@ -2,7 +2,9 @@
 import type { AgentMessage, PicksPayload } from "@/lib/agent/messages";
 import { ResultsBlock } from "./results-block";
 import { PicksCard } from "./picks-card";
-import { CompareCard, InquiryProposalCard, ShopsCard, ToolPending, TripCard } from "./tool-cards";
+import { CompareCard, InquiryProposalCard, MyInquiriesCard, ShopsCard, ToolPending, TripCard } from "./tool-cards";
+import { WhereCard } from "./where-card";
+import { ListCard } from "./list-card";
 import { cn } from "@/lib/cn";
 
 /** Light formatting for assistant text: **bold** and line breaks. */
@@ -41,6 +43,7 @@ export function MessageView({ message, onSend, isLatest, busy }: { message: Agen
           );
         }
         if (part.type === "data-results") return <ResultsBlock key={i} data={part.data} live={isLatest} />;
+        if (part.type === "data-where") return <WhereCard key={i} data={part.data} />;
         if (part.type === "data-picks") return <PicksCard key={i} data={part.data} onSend={onSend} interactive={isLatest} />;
         if (part.type.startsWith("tool-")) {
           const t = part as unknown as ToolPart;
@@ -59,6 +62,10 @@ export function MessageView({ message, onSend, isLatest, busy }: { message: Agen
               return <InquiryProposalCard key={i} data={out} />;
             case "planTrip":
               return <TripCard key={i} data={out} />;
+            case "suggestList":
+              return <ListCard key={i} data={out} />;
+            case "myInquiries":
+              return <MyInquiriesCard key={i} data={out} />;
             default:
               return null;
           }

@@ -3,7 +3,7 @@ import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "ترب حضوری · دستیار خرید حضوری", template: "%s · ترب حضوری" },
+  title: { default: "ترب حضوری، دستیار خرید حضوری", template: "%s، ترب حضوری" },
   description: "پیدا کن، مقایسه کن، از فروشنده بپرس و بدون دست‌خالی برگشتن، حضوری بخر. دستیار هوشمند خرید از فروشگاه‌ها و پاساژهای تهران.",
   applicationName: "ترب حضوری",
   manifest: "/manifest.webmanifest",

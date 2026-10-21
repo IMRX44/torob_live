@@ -171,7 +171,7 @@ export function TripPlanner({ initial }: { initial: string[] }) {
               <LazyMap origin={origin} pins={pins} />
             </div>
 
-            <ol className="relative mt-5 space-y-4 border-s-2 border-dashed border-line ps-5">
+            <ol className="relative ms-3 mt-5 space-y-4 border-s-2 border-dashed border-line ps-5">
               <li className="relative">
                 <span className="absolute -start-[29px] top-0.5 size-4 rounded-full border-4 border-elev bg-info" />
                 <p className="text-[12px] text-muted">حرکت {time(trip.startAt)} از {trip.origin.label}</p>
@@ -181,7 +181,7 @@ export function TripPlanner({ initial }: { initial: string[] }) {
                   <span className="absolute -start-[33px] top-1 grid size-6 place-items-center rounded-full bg-brand text-[11px] font-bold text-brand-fg">{toPersianDigits(i + 1)}</span>
                   <p className="flex items-center gap-1 text-[11px] text-muted">
                     {s.travelMode === "walk" ? <Footprints className="size-3.5" /> : <Car className="size-3.5" />}
-                    {formatMinutes(s.travelMin)} · رسیدن {time(s.arriveAt)}
+                    {formatMinutes(s.travelMin)}، رسیدن {time(s.arriveAt)}
                   </p>
                   <div className="mt-1 rounded-[20px] border border-line bg-elev p-3">
                     <div className="flex items-start justify-between gap-2">
@@ -189,7 +189,7 @@ export function TripPlanner({ initial }: { initial: string[] }) {
                         <p className="truncate text-[14px] font-bold">{s.shop.name}</p>
                         <p className="truncate text-[11px] text-muted">
                           <Building2 className="me-1 inline size-3" />
-                          {[s.shop.mallName, floorLabel(s.shop.floor), s.shop.unit ? `واحد ${toPersianDigits(s.shop.unit)}` : null].filter(Boolean).join(" · ") || s.shop.address}
+                          {[s.shop.mallName, floorLabel(s.shop.floor), s.shop.unit ? `واحد ${toPersianDigits(s.shop.unit)}` : null].filter(Boolean).join("، ") || s.shop.address}
                         </p>
                       </Link>
                       <a href={`https://www.google.com/maps/dir/?api=1&destination=${s.shop.lat},${s.shop.lon}`} target="_blank" rel="noreferrer" aria-label="مسیریابی" className="grid size-9 shrink-0 place-items-center rounded-full bg-sunken">
@@ -201,7 +201,7 @@ export function TripPlanner({ initial }: { initial: string[] }) {
                       {s.items.map((it) => (
                         <Link key={it.label} href={`/p/${it.productId}`}>
                           <Badge tone="brand">
-                            {it.label} · {it.price ? formatToman(it.price) : "بپرسید"}
+                            {it.label}، {it.price ? formatToman(it.price) : "بپرسید"}
                           </Badge>
                         </Link>
                       ))}
@@ -217,7 +217,7 @@ export function TripPlanner({ initial }: { initial: string[] }) {
               <li className="relative">
                 <span className="absolute -start-[29px] top-0.5 size-4 rounded-full border-4 border-elev bg-ok" />
                 <p className="text-[12px] text-muted">
-                  پایان حدود {time(trip.endAt)} · {formatDistance(trip.totalMeters)} جابه‌جایی
+                  پایان حدود {time(trip.endAt)}، {formatDistance(trip.totalMeters)} جابه‌جایی
                 </p>
               </li>
             </ol>

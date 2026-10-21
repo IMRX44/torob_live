@@ -25,7 +25,7 @@ function Bar({ label, value, total, tone = "bg-brand" }: { label: string; value:
       <div className="flex justify-between text-[12px]">
         <span>{label}</span>
         <span className="text-muted tabular">
-          {toPersianDigits(value.toLocaleString("en-US"))} · {pct(value, total)}
+          {toPersianDigits(value.toLocaleString("en-US"))}، {pct(value, total)}
         </span>
       </div>
       <div className="mt-1 h-2 rounded-full bg-sunken">
@@ -99,7 +99,7 @@ export default async function DataPage() {
               <Bar label="برند مشخص" value={r.products.withBrand} total={r.products.total} />
               <Bar label="دو فروشنده یا بیشتر (قابل مقایسه)" value={r.products.multiSeller} total={r.products.total} tone="bg-ok" />
             </div>
-            <p className="mt-3 text-[11px] text-subtle">{toPersianDigits(r.products.categories)} دسته · {toPersianDigits(r.malls.total)} پاساژ و مجتمع شناسایی‌شده از روی آدرس‌ها</p>
+            <p className="mt-3 text-[11px] text-subtle">{toPersianDigits(r.products.categories)} دسته، {toPersianDigits(r.malls.total)} پاساژ و مجتمع شناسایی‌شده از روی آدرس‌ها</p>
           </section>
 
           <section className="rounded-[22px] border border-line bg-elev p-4">
@@ -116,7 +116,7 @@ export default async function DataPage() {
 
           <section className="rounded-[22px] border border-line bg-elev p-4 text-[12px]">
             <h2 className="mb-2 text-[14px] font-bold">داده زنده ترب حضوری</h2>
-            {toPersianDigits(live?.inquiries ?? 0)} استعلام · {toPersianDigits(live?.confirmations ?? 0)} تأیید فروشنده · {toPersianDigits(live?.reports ?? 0)} گزارش حضوری کاربران
+            {toPersianDigits(live?.inquiries ?? 0)} استعلام، {toPersianDigits(live?.confirmations ?? 0)} تأیید فروشنده، {toPersianDigits(live?.reports ?? 0)} گزارش حضوری کاربران
           </section>
         </div>
       )}

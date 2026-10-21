@@ -53,7 +53,7 @@ export function ProductCard({ p, label, reasons, index = 0, layout = "grid" }: {
       {p.nearbySellers != null ? (
         p.nearbySellers > 0 ? (
           <Badge tone="ok" icon={<MapPin className="size-3" />}>
-            {toPersianDigits(p.nearbySellers)} فروشنده نزدیک{p.nearestM != null ? ` · ${formatDistance(p.nearestM)}` : ""}
+            {toPersianDigits(p.nearbySellers)} فروشنده نزدیک{p.nearestM != null ? `، ${formatDistance(p.nearestM)}` : ""}
           </Badge>
         ) : (
           <Badge tone="neutral">{toPersianDigits(p.sellerCount)} فروشنده در شهر</Badge>

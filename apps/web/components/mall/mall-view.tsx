@@ -104,8 +104,8 @@ export function MallView({ mall, product }: { mall: MallDetail; product: { id: s
               <p className="mt-1 text-lg font-black">{next.name}</p>
               <p className="text-[13px] opacity-90">
                 {floorName(next.floor)}
-                {next.unit ? ` · واحد ${toPersianDigits(next.unit)}` : ""}
-                {next.productHint?.price ? ` · ${formatToman(next.productHint.price)}` : ""}
+                {next.unit ? `، واحد ${toPersianDigits(next.unit)}` : ""}
+                {next.productHint?.price ? `، ${formatToman(next.productHint.price)}` : ""}
               </p>
             </motion.div>
           ) : Object.values(checks).includes("has") ? null : (
@@ -113,7 +113,7 @@ export function MallView({ mall, product }: { mall: MallDetail; product: { id: s
               همه مغازه‌های این پاساژ را دیدی. <Link className="font-bold text-brand" href={product ? `/p/${product.id}` : "/"}>جایگزین‌های نزدیک</Link>
             </p>
           )}
-          <ol className="relative space-y-3 border-s-2 border-dashed border-line ps-5">
+          <ol className="relative ms-3 space-y-3 border-s-2 border-dashed border-line ps-5">
             {sellers.map((s, i) => {
               const c = checks[s.id];
               return (
@@ -127,12 +127,12 @@ export function MallView({ mall, product }: { mall: MallDetail; product: { id: s
                         <p className="truncate text-[14px] font-bold">{s.name}</p>
                         <p className="text-[12px] text-muted">
                           {floorName(s.floor)}
-                          {s.unit ? ` · واحد ${toPersianDigits(s.unit)}` : ""}
+                          {s.unit ? `، واحد ${toPersianDigits(s.unit)}` : ""}
                         </p>
                       </Link>
                       <b className="shrink-0 text-[13px]">{s.productHint?.price ? formatToman(s.productHint.price) : "بپرسید"}</b>
                     </div>
-                    <div className="mt-2 flex items-center justify-between gap-2">
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                       <HoursBadge open={s.open} />
                       <div className="flex gap-1.5">
                         <button onClick={() => mark(s, "has")} className={cn("flex h-8 items-center gap-1 rounded-xl px-2.5 text-[12px] font-semibold", c === "has" ? "bg-ok text-white" : "bg-ok-soft text-ok")}>
@@ -191,7 +191,7 @@ export function MallView({ mall, product }: { mall: MallDetail; product: { id: s
                               <span className={s.open.state === "open" ? "text-ok" : s.open.state === "closed" ? "text-bad" : "text-subtle"}>
                                 {s.open.state === "open" ? "باز" : s.open.state === "closed" ? "بسته" : "ساعت نامشخص"}
                               </span>
-                              {s.productHint ? <span className="ms-1 font-bold text-brand">· {s.productHint.price ? formatToman(s.productHint.price) : "دارد"}</span> : null}
+                              {s.productHint ? <span className="ms-1 font-bold text-brand">، {s.productHint.price ? formatToman(s.productHint.price) : "دارد"}</span> : null}
                             </p>
                           </Link>
                         </li>

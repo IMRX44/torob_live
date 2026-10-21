@@ -21,6 +21,8 @@ export interface Filters {
   verifiedOnly: boolean;
   priority: "balanced" | "cheapest" | "nearest" | "surest";
   mode: "walk" | "car" | "metro";
+  /** planned visit time (ISO); null = leave now */
+  visitAt: string | null;
 }
 
 export const DEFAULT_FILTERS: Filters = {
@@ -35,6 +37,7 @@ export const DEFAULT_FILTERS: Filters = {
   verifiedOnly: false,
   priority: "balanced",
   mode: "car",
+  visitAt: null,
 };
 
 export interface ProductSummary {

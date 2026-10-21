@@ -14,12 +14,12 @@ export function MallCard({ mall }: { mall: Pick<MallSummary, "id" | "name" | "ar
           <h3 className="truncate text-sm font-bold">{mall.name}</h3>
           <p className="text-[11px] text-muted">
             {mall.area ?? ""}
-            {mall.distanceM != null ? ` · ${formatDistance(mall.distanceM)}` : ""}
+            {mall.distanceM != null ? `، ${formatDistance(mall.distanceM)}` : ""}
           </p>
         </div>
       </div>
       <p className="mt-2.5 text-xs text-muted">
-        {toPersianDigits(mall.shopCount)} فروشگاه · {toPersianDigits(mall.floors.length || 1)} طبقه
+        {toPersianDigits(mall.shopCount)} فروشگاه، {toPersianDigits(mall.floors.length || 1)} طبقه
       </p>
       <p className="mt-1 line-clamp-1 text-[11px] text-subtle">{mall.topCategories.slice(0, 3).join("، ")}</p>
     </Link>

@@ -115,7 +115,7 @@ export function openInfo(shop: ShopSummary, at: Date, override?: { today_close: 
   let label = "بسته";
   if (st.opensAt) {
     const when = st.opensAt.inDays === 0 ? "امروز" : st.opensAt.inDays === 1 ? "فردا" : DAY_LABEL[st.opensAt.day];
-    label = `بسته · ${when} ساعت ${formatClock(st.opensAt.minutes)} باز می‌شود`;
+    label = `بسته، ${when} ساعت ${formatClock(st.opensAt.minutes)} باز می‌شود`;
   }
   return { state: "closed", label, openAfterArrival: 0, closingSoon: false };
 }
@@ -219,6 +219,7 @@ type OfferRow = ShopRow & {
  */
 export async function shopsForProduct(q: OfferQuery): Promise<ShopsForProduct | null> {
   const now = q.now ?? new Date();
+  const visitAt = q.filters.visitAt ? new Date(q.filters.visitAt) : null;
   const product = await getProduct(q.productId);
   if (!product) return null;
   const db = sql();
@@ -240,7 +241,7 @@ export async function shopsForProduct(q: OfferQuery): Promise<ShopsForProduct | 
     const shop = toShop(r);
     const distanceM = haversine(q.origin, shop);
     const eta = estimateEta(q.origin, shop, q.filters.mode, now);
-    const arrival = new Date(now.getTime() + eta.minutes * 60_000);
+    const arrival = visitAt ?? new Date(now.getTime() + eta.minutes * 60_000);
     let open = openInfo(shop, arrival, overrides.get(shop.id));
     if (crowdClosed.has(shop.id)) open = { ...open, state: "closed", label: "کاربران گزارش دادند الان بسته است", openAfterArrival: 0 };
     const confirmation = confirms.get(shop.id) ?? null;
@@ -352,7 +353,7 @@ export async function shopsForProduct(q: OfferQuery): Promise<ShopsForProduct | 
   const hubValue = (h: HubSummary) => h.successChance * 2 + Math.min(h.openCount, 8) * 0.15 - (h.distanceM ?? 0) / 2500;
   hubSummaries.sort((a, b) => hubValue(b) - hubValue(a));
 
-  const arrivalAt = new Date(now.getTime() + (offers[0]?.etaMin ?? 0) * 60_000).toISOString();
+  const arrivalAt = (visitAt ?? new Date(now.getTime() + (offers[0]?.etaMin ?? 0) * 60_000)).toISOString();
   return {
     product,
     offers,
