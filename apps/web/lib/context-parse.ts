@@ -29,8 +29,18 @@ export function parseContext(p: Getter): { origin: Origin; filters: Filters } {
     verifiedOnly: bool("verifiedOnly"),
     priority: pr === "cheapest" || pr === "nearest" || pr === "surest" ? pr : "balanced",
     mode: mode === "walk" || mode === "metro" ? mode : "car",
+    visitAt: validVisit(p.get("visitAt")),
   };
   return { origin, filters };
+}
+
+/** Accept a planned visit only within the next week (stale stored values fall back to "now"). */
+function validVisit(v: string | null): string | null {
+  if (!v) return null;
+  const t = new Date(v).getTime();
+  if (!Number.isFinite(t)) return null;
+  const now = Date.now();
+  return t > now - 30 * 60_000 && t < now + 7 * 86_400_000 ? new Date(t).toISOString() : null;
 }
 
 export function toGetter(sp: Record<string, string | string[] | undefined>): Getter {

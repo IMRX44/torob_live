@@ -56,7 +56,7 @@ export function MapExplorer() {
               </span>
               <Link href={`/mall/${mall.id}`} className="min-w-0 flex-1">
                 <p className="truncate font-bold">{mall.name}</p>
-                <p className="text-[12px] text-muted">{toPersianDigits(mall.shop_count)} فروشگاه · مشاهده طبقات</p>
+                <p className="text-[12px] text-muted">{toPersianDigits(mall.shop_count)} فروشگاه، مشاهده طبقات</p>
               </Link>
               <button aria-label="بستن" onClick={() => setPicked(null)} className="grid size-8 place-items-center rounded-full hover:bg-sunken">
                 <X className="size-4" />
@@ -73,7 +73,7 @@ export function MapExplorer() {
                   <span className="min-w-0 flex-1">
                     <b className="block truncate text-[13px]">{m.name}</b>
                     <span className="text-[11px] text-muted">
-                      {toPersianDigits(m.shopCount)} مغازه · {formatDistance(m.distanceM ?? 0)}
+                      {toPersianDigits(m.shopCount)} مغازه، {formatDistance(m.distanceM ?? 0)}
                     </span>
                   </span>
                   <ChevronLeft className="size-4 text-muted" />

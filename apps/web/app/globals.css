@@ -125,6 +125,8 @@
 }
 
 html { -webkit-tap-highlight-color: transparent; }
+/* Never let a stray element create sideways scroll on phones (clip keeps position: sticky working). */
+html, body { overflow-x: clip; }
 body {
   background: var(--bg);
   color: var(--fg);

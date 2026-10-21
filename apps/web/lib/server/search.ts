@@ -6,6 +6,10 @@ import type { ProductSummary } from "../types";
 /** Shopper vocabulary → catalog vocabulary. */
 const SYNONYMS: Record<string, string[]> = {
   هندزفری: ["هندزفری", "هدفون", "هدست", "ایرپاد", "ایربادز"],
+  هنذفری: ["هندزفری", "هدفون", "هنذفری"],
+  هندفری: ["هندزفری", "هدفون"],
+  بلوتوس: ["بلوتوث"],
+  بلوتوث: ["بلوتوث", "بی سیم"],
   هدفون: ["هدفون", "هندزفری", "هدست"],
   ایرپاد: ["ایرپاد", "airpods", "هندزفری"],
   گوشی: ["گوشی", "موبایل"],
@@ -100,31 +104,37 @@ export function toSummary(r: Row): ProductSummary {
 
 /**
  * Lexical search with synonym groups: every token group must match (AND of ORs),
- * then rank by trigram similarity, seller count and price availability.
- * Falls back to fuzzy trigram matching when the strict pass finds nothing.
+ * ranked by trigram similarity, seller count, price availability and category fit.
+ * If a word kills recall ("هندزفری باشگاه"), the least useful word is dropped and
+ * reported back, then a fuzzy trigram pass catches typos.
  */
 export async function searchProducts(p: SearchParams): Promise<ProductSummary[]> {
+  return (await searchProductsDetailed(p)).items;
+}
+
+export async function searchProductsDetailed(p: SearchParams): Promise<{ items: ProductSummary[]; dropped: string[] }> {
   const db = sql();
-  const groups = expandQuery(p.q);
+  const rawTokens = normalizeFa(p.q).split(" ").filter((t) => t.length > 1 || /\d/.test(t)).slice(0, 6);
+  let groups = expandQuery(p.q);
   const qn = normalizeFa(p.q);
   const limit = Math.min(p.limit ?? 24, 60);
-  if (!groups.length && !p.category) return [];
+  if (!groups.length && !p.category) return { items: [], dropped: [] };
 
-  const priceCond = db`
+  const priceCond = () => db`
     ${p.maxPrice != null ? db`AND (pr.price_min IS NOT NULL AND pr.price_min <= ${p.maxPrice})` : db``}
     ${p.minPrice != null ? db`AND (pr.price_max IS NOT NULL AND pr.price_max >= ${p.minPrice})` : db``}
     ${p.category ? db`AND pr.category = ${p.category}` : db``}
     ${p.requireOffers !== false ? db`AND pr.seller_count > 0` : db``}
     ${p.installment ? db`AND EXISTS (SELECT 1 FROM offers oi JOIN shops si ON si.id = oi.shop_id WHERE oi.product_id = pr.id AND si.has_installment)` : db``}`;
 
-  let nearCond = db``;
-  if (p.near) {
+  const nearCond = () => {
+    if (!p.near) return db``;
     const b = bbox(p.near, p.near.radiusM);
-    nearCond = db`AND EXISTS (
+    return db`AND EXISTS (
       SELECT 1 FROM offers o JOIN shops s ON s.id = o.shop_id
       WHERE o.product_id = pr.id
         AND s.lat BETWEEN ${b.minLat} AND ${b.maxLat} AND s.lon BETWEEN ${b.minLon} AND ${b.maxLon})`;
-  }
+  };
 
   // Boost products whose category itself matches the query ("لپ تاپ" → laptops, not laptop bags).
   const catRows = qn
@@ -135,23 +145,43 @@ export async function searchProducts(p: SearchParams): Promise<ProductSummary[]>
     : [];
   const boostCats = catRows.map((c) => c.name);
 
-  const tokenCond = groups.length
-    ? groups.map((g) => db`AND pr.title_norm ILIKE ANY(${g.map((t) => `%${t}%`)}::text[])`)
-    : [];
+  const run = (gs: string[][], lim = limit) =>
+    db<Row[]>`
+      SELECT pr.id, pr.title, pr.brand, pr.category, pr.images, pr.seller_count,
+             pr.price_min, pr.price_median, pr.price_max, pr.last_change,
+             (similarity(pr.title_norm, ${qn}) * 3
+               + CASE WHEN pr.category = ANY(${boostCats}::text[]) THEN 1.6 ELSE 0 END
+               + ln(1 + pr.seller_count) * 0.9
+               + CASE WHEN pr.price_min IS NOT NULL THEN 0.4 ELSE 0 END
+               + CASE WHEN pr.last_change > now() - interval '30 days' THEN 0.3 ELSE 0 END) AS rank
+      FROM products pr
+      WHERE TRUE ${gs.map((g) => db`AND pr.title_norm ILIKE ANY(${g.map((t) => `%${t}%`)}::text[])`)} ${priceCond()} ${nearCond()}
+      ORDER BY rank DESC
+      LIMIT ${lim}`;
 
-  const strict = await db<Row[]>`
-    SELECT pr.id, pr.title, pr.brand, pr.category, pr.images, pr.seller_count,
-           pr.price_min, pr.price_median, pr.price_max, pr.last_change,
-           (similarity(pr.title_norm, ${qn}) * 3
-             + CASE WHEN pr.category = ANY(${boostCats}::text[]) THEN 1.6 ELSE 0 END
-             + ln(1 + pr.seller_count) * 0.6
-             + CASE WHEN pr.price_min IS NOT NULL THEN 0.4 ELSE 0 END
-             + CASE WHEN pr.last_change > now() - interval '30 days' THEN 0.3 ELSE 0 END) AS rank
-    FROM products pr
-    WHERE TRUE ${tokenCond} ${priceCond} ${nearCond}
-    ORDER BY rank DESC
-    LIMIT ${limit}`;
-  if (strict.length || !qn) return strict.map(toSummary);
+  let items = groups.length ? await run(groups) : [];
+  const dropped: string[] = [];
+  // Relax: drop the rarest word in the catalog ("باشگاه" in "هندزفری باشگاه"), never the head noun.
+  for (let round = 0; round < 2 && items.length < 4 && groups.length > 1; round++) {
+    const df = await Promise.all(
+      groups.map(async (g) => {
+        const [r] = await db<{ n: number }[]>`
+          SELECT count(*)::int AS n FROM (SELECT 1 FROM products pr WHERE pr.title_norm ILIKE ANY(${g.map((t) => `%${t}%`)}::text[]) LIMIT 400) x`;
+        return r?.n ?? 0;
+      }),
+    );
+    let best = 0;
+    df.forEach((n, i) => {
+      if (n < df[best]!) best = i;
+    });
+    const next = await run(groups.filter((_, j) => j !== best));
+    if (next.length <= items.length) break;
+    items = next;
+    dropped.push(rawTokens[best] ?? groups[best]![0]!);
+    groups = groups.filter((_, j) => j !== best);
+    rawTokens.splice(best, 1);
+  }
+  if (items.length || !qn) return { items: items.map(toSummary), dropped };
 
   // Fuzzy fallback for typos: word similarity on the whole query.
   const fuzzy = await db<Row[]>`
@@ -159,10 +189,10 @@ export async function searchProducts(p: SearchParams): Promise<ProductSummary[]>
            pr.price_min, pr.price_median, pr.price_max, pr.last_change,
            word_similarity(${qn}, pr.title_norm) * 3 + ln(1 + pr.seller_count) * 0.4 AS rank
     FROM products pr
-    WHERE ${qn} <% pr.title_norm ${priceCond} ${nearCond}
+    WHERE ${qn} <% pr.title_norm ${priceCond()} ${nearCond()}
     ORDER BY rank DESC
     LIMIT ${limit}`;
-  return fuzzy.map(toSummary);
+  return { items: fuzzy.map(toSummary), dropped };
 }
 
 /** Categories matching a query, used for "did you mean" chips and category-only shops. */

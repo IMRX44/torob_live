@@ -119,7 +119,7 @@ function InquiryCard({ inq, highlight, onChange }: { inq: Inquiry; highlight: bo
           <p className="mt-1 text-[17px] font-black">{best.shopName}</p>
           <p className="text-[12px] opacity-90">
             <Building2 className="me-1 inline size-3.5" />
-            {[best.mallName, floorLabel(best.floor), best.unit ? `واحد ${toPersianDigits(best.unit)}` : null].filter(Boolean).join(" · ") || "آدرس در صفحه فروشگاه"}
+            {[best.mallName, floorLabel(best.floor), best.unit ? `واحد ${toPersianDigits(best.unit)}` : null].filter(Boolean).join("، ") || "آدرس در صفحه فروشگاه"}
           </p>
           <p className="mt-1 text-[15px] font-bold">{formatToman(best.replyPrice ?? best.listedPrice)}</p>
           {best.holdUntil ? (
@@ -158,9 +158,9 @@ function InquiryCard({ inq, highlight, onChange }: { inq: Inquiry; highlight: bo
                 </Link>
                 <p className="truncate text-[11px] text-muted">
                   {st.label}
-                  {t.replyPrice ? ` · ${formatToman(t.replyPrice)}` : ""}
-                  {t.altProductTitle ? ` · ${t.altProductTitle}` : ""}
-                  {t.repliedAt ? ` · ${formatAgo(t.repliedAt)}` : ""}
+                  {t.replyPrice ? `، ${formatToman(t.replyPrice)}` : ""}
+                  {t.altProductTitle ? `، ${t.altProductTitle}` : ""}
+                  {t.repliedAt ? `، ${formatAgo(t.repliedAt)}` : ""}
                 </p>
               </div>
               {t.status === "alternative" && t.altProductId ? (
