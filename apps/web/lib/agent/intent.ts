@@ -13,6 +13,10 @@ export interface ParsedIntent {
   nearMe: boolean;
   /** user asked "where should I go" rather than "what should I buy" */
   wantsWhere: boolean;
+  /** "build me a system/kit" — the budget is for the whole build, not per item */
+  wantsBuild: boolean;
+  /** total budget of a build request */
+  buildBudget: number | null;
   chips: string[]; // human-readable list of what we understood
 }
 
@@ -152,6 +156,16 @@ export function parseIntent(input: string, now = new Date()): ParsedIntent {
     }
     strip(new RegExp(esc(around[0])));
   }
+  // "با ۱۰۰ میلیون" / "با ۲۰ تومن": a budget only when a money unit follows.
+  const withBudget = text.match(new RegExp(`(?<=^|\\s)با\\s*${NUM}\\s*(میلیارد|میلیون|ملیون|هزار|تومن|تومان)(?:\\s*(?:تومان|تومن))?`));
+  if (withBudget && filters.maxPrice == null) {
+    const v = amount(withBudget[1]!, withBudget[2]);
+    if (v) {
+      filters.maxPrice = v;
+      chips.push(`تا ${formatToman(v)}`);
+      strip(new RegExp(esc(withBudget[0])));
+    }
+  }
   const min = text.match(new RegExp(`(?:بالای|بیشتر از|حداقل)\\s*${NUM}\\s*${UNIT}`));
   if (min && filters.minPrice == null) {
     const v = amount(min[1]!, min[2]);
@@ -226,7 +240,22 @@ export function parseIntent(input: string, now = new Date()): ParsedIntent {
     .filter((w) => w.length > 1 || /\d/.test(w))
     .join(" ");
 
-  return { query, filters, place, nearMe, wantsWhere, chips };
+  // "یه سیستم گیمینگ با ۱۰۰ میلیون ببندم": a whole-kit request. The budget is the total, so it
+  // must not become a per-product price cap on the context bar.
+  const wantsBuild =
+    /(?:سیستم|کامپیوتر|کیس|pc|رایانه)\s*(?:گیمینگ|گیم|رندر|استریم|تدوین|اداری|برای (?:گیم|بازی|رندر|استریم|تدوین))/i.test(input) ||
+    /(?:ببندم|بسازم|بسازی|ببندی|اسمبل|بستن سیستم|ساختن سیستم|سیستم ببند|سیستم بساز)/.test(input) ||
+    /(?:ست|پکیج|کیت)\s*(?:کامل)?\s*(?:دوربین|صوتی|استریم|گیمینگ)/.test(input);
+  let buildBudget: number | null = null;
+  if (wantsBuild) {
+    buildBudget = filters.maxPrice ?? null;
+    delete filters.maxPrice;
+    delete filters.minPrice;
+    for (let k = chips.length - 1; k >= 0; k--) if (/تومان|میلیون/.test(chips[k]!)) chips.splice(k, 1);
+    if (buildBudget) chips.unshift(`بودجه کل ${formatToman(buildBudget)}`);
+  }
+
+  return { query, filters, place, nearMe, wantsWhere, wantsBuild, buildBudget, chips };
 }
 
 export { PLACES, toPersianDigits };

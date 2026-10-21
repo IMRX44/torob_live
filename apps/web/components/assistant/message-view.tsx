@@ -8,15 +8,61 @@ import { ListCard } from "./list-card";
 import { BuildCard } from "./build-card";
 import { cn } from "@/lib/cn";
 
-/** Light formatting for assistant text: **bold** and line breaks. */
-function RichText({ text }: { text: string }) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+/** Inline **bold** only; everything else stays plain text (no HTML, no links: nothing to inject). */
+function Inline({ text }: { text: string }) {
   return (
     <>
-      {parts.map((p, i) =>
+      {text.split(/(\*\*[^*]+\*\*)/g).map((p, i) =>
         p.startsWith("**") && p.endsWith("**") ? <b key={i}>{p.slice(2, -2)}</b> : <span key={i}>{p}</span>,
       )}
     </>
+  );
+}
+
+/** Paragraphs and bullet lists from model text, rendered as React text nodes. */
+function RichText({ text, streaming }: { text: string; streaming: boolean }) {
+  const blocks: { kind: "p" | "ul"; lines: string[] }[] = [];
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (!line) continue;
+    const bullet = line.match(/^(?:[-•*]|\d+[.)])\s+(.*)$/);
+    const last = blocks[blocks.length - 1];
+    if (bullet) {
+      if (last?.kind === "ul") last.lines.push(bullet[1]!);
+      else blocks.push({ kind: "ul", lines: [bullet[1]!] });
+    } else blocks.push({ kind: "p", lines: [line] });
+  }
+  return (
+    <div className={cn("max-w-[92%] space-y-2 text-[14.5px] leading-7", streaming && "[&>*:last-child]:after:ms-0.5 [&>*:last-child]:after:inline-block [&>*:last-child]:after:h-4 [&>*:last-child]:after:w-1.5 [&>*:last-child]:after:animate-pulse [&>*:last-child]:after:bg-brand")}>
+      {blocks.map((b, i) =>
+        b.kind === "p" ? (
+          <p key={i}>
+            <Inline text={b.lines[0]!} />
+          </p>
+        ) : (
+          <ul key={i} className="space-y-1 ps-1">
+            {b.lines.map((l, k) => (
+              <li key={k} className="flex gap-2">
+                <span className="mt-[11px] size-1.5 shrink-0 rounded-full bg-brand" />
+                <span>
+                  <Inline text={l} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        ),
+      )}
+    </div>
+  );
+}
+
+function AssistantMark() {
+  return (
+    <span aria-hidden className="mt-1 grid size-7 shrink-0 place-items-center rounded-full bg-brand text-brand-fg shadow-sm">
+      <svg viewBox="0 0 32 32" className="size-4">
+        <path d="M16 6.5c-4.1 0-7.4 3.2-7.4 7.2 0 5.3 6.2 10.9 6.9 11.5.3.3.7.3 1 0 .7-.6 6.9-6.2 6.9-11.5 0-4-3.3-7.2-7.4-7.2Z" fill="currentColor" />
+      </svg>
+    </span>
   );
 }
 
@@ -33,14 +79,16 @@ export function MessageView({ message, onSend, isLatest, busy }: { message: Agen
   }
 
   return (
-    <div className="mt-3">
+    <div className="mt-4 flex gap-2.5">
+      <AssistantMark />
+      <div className="min-w-0 flex-1">
       {message.parts.map((part, i) => {
         if (part.type === "text") {
           if (!part.text.trim()) return null;
           return (
-            <p key={i} className={cn("mt-2 max-w-[92%] text-[14.5px] leading-7", busy && part.state === "streaming" && "after:ms-0.5 after:inline-block after:h-4 after:w-1.5 after:animate-pulse after:bg-brand")}>
-              <RichText text={part.text} />
-            </p>
+            <div key={i} className="mt-1 first:mt-0">
+              <RichText text={part.text} streaming={busy && part.state === "streaming"} />
+            </div>
           );
         }
         if (part.type === "data-results") return <ResultsBlock key={i} data={part.data} live={isLatest} />;
@@ -75,6 +123,7 @@ export function MessageView({ message, onSend, isLatest, busy }: { message: Agen
         }
         return null;
       })}
+      </div>
     </div>
   );
 }

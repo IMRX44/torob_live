@@ -73,6 +73,7 @@ const JAILBREAK: RegExp[] = [
   /(?:نادیده|فراموش)\s*(?:بگیر|کن)[^.\n]{0,25}(?:دستور|قوانین|قانون|پرامپت)/,
   /(?:پرامپت|پرامت|prompt)\s*(?:سیستم|سیستمی|اصلی|خودت)/i,
   /(?:دستورالعمل|دستورات)\s*(?:سیستمی|اولیه|مخفی)/,
+  /(?:متن|کل|تمام|همه)\s*(?:کامل\s*)?(?:دستورالعمل|دستورات|قوانین|پرامپت)[^.\n]{0,40}(?:بنویس|نشون|نمایش|بگو|بفرست|کپی)/,
   /از (?:این ?به ?بعد|الان به بعد) (?:تو|شما) (?:یک|یه)? ?(?!دستیار خرید)/,
   /نقش (?:یک|یه)? ?[^ ]+ (?:رو|را) بازی کن/,
   /(?:حالت|مود) (?:توسعه‌دهنده|دولوپر|developer)/,
@@ -94,4 +95,16 @@ export const INJECTION_REPLY =
 /** Only categories that exist in the catalog may be interpolated into prompts or cache keys. */
 export function isKnownCategory(name: string, known: Set<string>) {
   return known.has(name);
+}
+
+/**
+ * Output-side safety net: the model must never name its vendor/model or emit links, even if an
+ * upstream gateway injects its own identity. Applied to every streamed text chunk.
+ */
+const IDENTITY_SENTENCE =
+  /[^.!؟?\n]*(?:claude|anthropic|openai|chatgpt|\bgpt[- ]?\d|gemini|deepseek|mythos|llama|mistral|qwen|کلود|آنتروپیک|اوپن ?ای ?آی|جمینای)[^.!؟?\n]*[.!؟?]?/gi;
+const LINK = /https?:\/\/\S+|www\.\S+|\b(?:[a-z0-9-]+\.)+(?:com|net|org|io|ir|xyz|ru|info|app|dev|me)\b\S*/gi;
+
+export function redactOutput(text: string): string {
+  return text.replace(IDENTITY_SENTENCE, " من دستیار هوشمند ترب حضوری هستم.").replace(LINK, "").replace(/ {2,}/g, " ");
 }

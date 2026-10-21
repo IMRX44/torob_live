@@ -12,6 +12,7 @@ import { getSessionId } from "@/lib/server/session";
 import { json, rateLimit } from "@/lib/server/http";
 import { fenceData, INJECTION_REPLY, screenUserText } from "@/lib/agent/guard";
 import { rebuildHistory, recordToolResults } from "@/lib/agent/history";
+import { redactTransform } from "@/lib/agent/redact";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 90;
@@ -92,7 +93,8 @@ export async function POST(req: NextRequest) {
       let origin = intent.place ? { lat: intent.place.lat, lon: intent.place.lon, label: intent.place.name, source: "preset" as const } : baseOrigin;
       let filters: Filters = { ...baseFilters, ...intent.filters };
 
-      const followup = looksLikeFollowup(text, hasHistory) || Boolean(focusProductId);
+      // Builds are planned by the agent part by part; a flat product search would only show noise.
+      const followup = looksLikeFollowup(text, hasHistory) || Boolean(focusProductId) || intent.wantsBuild;
       const quick = followup ? null : await quickResults(text, baseOrigin, baseFilters, body.context?.lastQuery);
       if (quick) {
         origin = quick.origin;
@@ -128,6 +130,10 @@ export async function POST(req: NextRequest) {
         );
       if (where) facts.push(fenceData("where_to_go", whereBlock(where)));
       if (focusProductId && !where) facts.push(`[کاربر درباره محصول ${focusProductId} می‌پرسد]`);
+      if (intent.wantsBuild)
+        facts.push(
+          `[درخواست ساخت سیستم/مجموعه است${intent.buildBudget ? `؛ بودجه کل ${intent.buildBudget} تومان` : "؛ بودجه معلوم نیست"}. اگر بودجه و کاربرد معلوم است مستقیم planBuild، وگرنه با present یک سؤال درباره بودجه یا کاربرد بپرس.]`,
+        );
       if (!facts.length) facts.push("[پیام پیگیری است؛ از تاریخچه گفتگو و ابزارها استفاده کن]");
       if (quick?.items.length && !where) facts.push("یادآوری: پاسخ را حتماً با صدا زدن ابزار present (یا ابزار مناسب دیگر) تمام کن، نه فقط متن.");
       facts.push("یادآوری هویت: تو «ترب حضوری» هستی؛ نام مدل یا شرکت سازنده را نگو.");
@@ -143,6 +149,7 @@ export async function POST(req: NextRequest) {
           toolChoice: quick?.items.length && !where ? "required" : "auto",
           stopWhen: [stepCountIs(3), ...FINAL_TOOLS.map((t) => hasToolCall(t))],
           abortSignal: AbortSignal.timeout(75_000),
+          experimental_transform: redactTransform(),
           maxRetries: 1,
           onError: () => {},
         });
