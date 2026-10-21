@@ -4,7 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { AnimatePresence, motion } from "motion/react";
 import { Plus, RotateCcw } from "lucide-react";
-import type { AgentMessage, QuickResults } from "@/lib/agent/messages";
+import type { AgentMessage } from "@/lib/agent/messages";
 import { useApp } from "@/lib/store";
 import { Composer } from "./composer";
 import { MessageView } from "./message-view";
@@ -27,12 +27,21 @@ function loadMessages(): AgentMessage[] {
   }
 }
 
-export function Assistant({ malls, categories, initialQuery }: { malls: MallSummary[]; categories: { name: string; shop_count: number }[]; initialQuery?: string | null }) {
+export function Assistant({
+  malls,
+  categories,
+  initialQuery,
+  focusProductId,
+}: {
+  malls: MallSummary[];
+  categories: { name: string; shop_count: number }[];
+  initialQuery?: string | null;
+  focusProductId?: string | null;
+}) {
   const [initial] = useState<AgentMessage[]>(() => (typeof window === "undefined" ? [] : loadMessages()));
   const [stage, setStage] = useState<"searching" | "thinking" | "done" | "error" | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const { origin, filters, setFilters, setOrigin } = useApp();
-  const applied = useRef(new Set<string>());
   const bottom = useRef<HTMLDivElement>(null);
 
   const transport = useMemo(() => new DefaultChatTransport<AgentMessage>({ api: "/api/chat" }), []);
@@ -45,14 +54,11 @@ export function Assistant({ malls, categories, initialQuery }: { malls: MallSumm
         setStage(part.data.stage);
         setNote(part.data.note ?? null);
       }
-      if (part.type === "data-results") {
-        const r = part.data as QuickResults;
-        const key = `${r.rawText}|${r.query}`;
-        if (applied.current.has(key)) return;
-        applied.current.add(key);
+      if (part.type === "data-intent") {
         // Reflect what we understood in the context bar so it can be edited with one tap.
-        if (Object.keys(r.intent.filters).length) setFilters(r.intent.filters);
-        if (r.intent.place) setOrigin({ lat: r.intent.place.lat, lon: r.intent.place.lon, label: r.intent.place.name, source: "preset" });
+        const r = part.data;
+        if (Object.keys(r.filters).length) setFilters(r.filters);
+        if (r.place) setOrigin({ lat: r.place.lat, lon: r.place.lon, label: r.place.name, source: "preset" });
       }
     },
     onError: () => setStage("error"),
@@ -81,15 +87,17 @@ export function Assistant({ malls, categories, initialQuery }: { malls: MallSumm
     return null;
   }, [messages]);
 
+  const focus = useRef<string | null>(focusProductId ?? null);
   const send = (text: string) => {
     setStage("searching");
-    sendMessage({ text }, { body: { context: { origin, filters, lastQuery } } });
+    const focusProduct = focus.current;
+    focus.current = null; // only the first question is about the product the user came from
+    sendMessage({ text }, { body: { context: { origin, filters, lastQuery, focusProductId: focusProduct } } });
   };
 
   const reset = () => {
     stop();
     setMessages([]);
-    applied.current.clear();
     try {
       sessionStorage.removeItem(STORE_KEY);
     } catch {}

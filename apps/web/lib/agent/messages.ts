@@ -1,6 +1,6 @@
 import type { UIMessage } from "ai";
 import type { ParsedIntent } from "./intent";
-import type { Filters, Origin, ProductSummary } from "../types";
+import type { Filters, HubSummary, Origin, ProductSummary, ShopOffer } from "../types";
 
 export interface QuickResults {
   query: string;
@@ -9,8 +9,21 @@ export interface QuickResults {
   origin: Origin;
   filters: Filters;
   relaxed: string[];
+  /** query words ignored because no product title contained them */
+  dropped: string[];
   items: ProductSummary[];
   facets: { categories: [string, number][]; brands: [string, number][] };
+}
+
+/** Instant "where should I go" answer for one product. */
+export interface WherePayload {
+  product: ProductSummary;
+  hub: HubSummary | null;
+  top: ShopOffer[];
+  total: number;
+  openCount: number;
+  visitLabel: string | null;
+  trafficZone: boolean;
 }
 
 export interface PicksPayload {
@@ -21,6 +34,8 @@ export interface PicksPayload {
 
 export type AgentDataParts = {
   results: QuickResults;
+  where: WherePayload;
+  intent: { filters: Partial<Filters>; place: ParsedIntent["place"]; chips: string[] };
   status: { stage: "searching" | "thinking" | "done" | "error"; note?: string };
   picks: PicksPayload;
 };
@@ -31,4 +46,6 @@ export interface ChatContext {
   origin: Origin;
   filters: Filters;
   lastQuery?: string | null;
+  /** product the user is looking at when consulting the assistant from a product page */
+  focusProductId?: string | null;
 }

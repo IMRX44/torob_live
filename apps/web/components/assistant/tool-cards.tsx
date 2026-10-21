@@ -1,9 +1,9 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { LiveInquiry } from "./live-inquiry";
 import { motion } from "motion/react";
-import { Building2, Check, ChevronLeft, Clock, MapPinned, MessageCircleQuestion, Route, Send, TriangleAlert, Trophy } from "lucide-react";
+import { Building2, ChevronLeft, Clock, MapPinned, MessageCircleQuestion, Route, Send, TriangleAlert, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { floorLabel, formatAgo, formatDistance, formatMinutes, formatToman, REASON_LABEL, toPersianDigits, type ReasonCode } from "@torob/core";
 import { ProductImage } from "@/components/cards/product-card";
@@ -29,6 +29,8 @@ export function ToolPending({ name }: { name: string }) {
     findShops: "دارم فروشنده‌های نزدیک را رتبه‌بندی می‌کنم…",
     proposeInquiry: "دارم پیام استعلام را آماده می‌کنم…",
     planTrip: "دارم کوتاه‌ترین مسیر خرید را می‌چینم…",
+    suggestList: "دارم لیست خرید کامل را آماده می‌کنم…",
+    myInquiries: "دارم جواب فروشنده‌ها را چک می‌کنم…",
   };
   return (
     <div className="mt-3 flex items-center gap-2 rounded-2xl bg-sunken px-3 py-2.5 text-[13px] text-muted">
@@ -171,8 +173,7 @@ export function ShopsCard({ data }: { data: { product: { id: string; title: stri
 }
 
 export function InquiryProposalCard({ data }: { data: { productId: string; productTitle: string; offers: CompactOffer[] } }) {
-  const router = useRouter();
-  const [sent, setSent] = useState(false);
+  const [sent, setSent] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const send = async () => {
     setBusy(true);
@@ -185,9 +186,8 @@ export function InquiryProposalCard({ data }: { data: { productId: string; produ
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
       haptic([10, 40, 10]);
-      setSent(true);
-      toast.success("استعلام ارسال شد؛ جواب‌ها زنده می‌آیند");
-      router.push(`/requests?focus=${d.inquiry.id}`);
+      setSent(d.inquiry.id);
+      toast.success("استعلام ارسال شد؛ جواب‌ها همین‌جا زنده می‌آیند");
     } catch (e) {
       toast.error((e as Error).message || "ارسال نشد");
     } finally {
@@ -207,9 +207,13 @@ export function InquiryProposalCard({ data }: { data: { productId: string; produ
           </li>
         ))}
       </ul>
-      <Button className="mt-3 w-full" onClick={send} loading={busy} disabled={sent || !data.offers.length}>
-        {sent ? <Check className="size-5" /> : <Send className="size-5" />} {sent ? "ارسال شد" : `ارسال به ${toPersianDigits(data.offers.length)} فروشنده`}
-      </Button>
+      {sent ? (
+        <LiveInquiry id={sent} />
+      ) : (
+        <Button className="mt-3 w-full" onClick={send} loading={busy} disabled={!data.offers.length}>
+          <Send className="size-5" /> ارسال به {toPersianDigits(data.offers.length)} فروشنده
+        </Button>
+      )}
     </Card>
   );
 }
@@ -270,6 +274,23 @@ export function TripCard({ data }: { data: TripData }) {
           <Route className="size-4" /> باز کردن سفر روی نقشه
         </Button>
       </Link>
+    </Card>
+  );
+}
+
+type MyInq = { inquiries: { id: string; product: string | null; productId: string | null; targets: { shop: string; status: string; price: number | null }[] }[] };
+
+export function MyInquiriesCard({ data }: { data: MyInq }) {
+  if (!data.inquiries.length) return <Card>هنوز از فروشنده‌ای استعلام نگرفته‌اید.</Card>;
+  return (
+    <Card>
+      <p className="mb-2 text-[13px] font-bold">استعلام‌های اخیر شما</p>
+      {data.inquiries.slice(0, 2).map((i) => (
+        <div key={i.id} className="mb-3 last:mb-0">
+          <p className="line-clamp-1 text-[12px] text-muted">{i.product}</p>
+          <LiveInquiry id={i.id} />
+        </div>
+      ))}
     </Card>
   );
 }

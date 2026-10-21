@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { CompareToggle } from "@/components/product/compare-toggle";
 import { BuyingChecklist } from "@/components/product/checklist";
+import { AskAssistant } from "@/components/product/ask-assistant";
 import { getProduct, similarProducts } from "@/lib/server/catalog";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +57,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             </div>
           ) : null}
         </div>
+
+        <AskAssistant productId={product.id} />
 
         <WhereToBuy productId={product.id} productTitle={product.title} />
 

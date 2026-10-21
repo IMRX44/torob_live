@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
-import { Banknote, Car, Clock, CreditCard, Footprints, Radius, RotateCcw, ShieldCheck, SlidersHorizontal, TrainFront, Zap, BadgeCheck } from "lucide-react";
-import { formatToman, toPersianDigits } from "@torob/core";
+import { Banknote, CalendarClock, Car, Clock, CreditCard, Footprints, Radius, RotateCcw, ShieldCheck, SlidersHorizontal, TrainFront, Zap, BadgeCheck } from "lucide-react";
+import { formatClock, formatToman, tehranClock, toPersianDigits } from "@torob/core";
 import { Chip } from "@/components/ui/chip";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ const MODES: { v: Filters["mode"]; label: string; icon: typeof Car }[] = [
  */
 export function ContextBar({ className, showLocation = true }: { className?: string; showLocation?: boolean }) {
   const { filters, setFilters, resetFilters } = useApp();
-  const [sheet, setSheet] = useState<null | "radius" | "budget" | "more">(null);
+  const [sheet, setSheet] = useState<null | "radius" | "budget" | "more" | "when">(null);
   const toggle = (k: keyof Filters) => {
     haptic();
     setFilters({ [k]: !filters[k] } as Partial<Filters>);
@@ -47,6 +47,9 @@ export function ContextBar({ className, showLocation = true }: { className?: str
       </Chip>
       <Chip active={filters.maxPrice != null || filters.minPrice != null} icon={<Banknote className="size-4" />} onClick={() => setSheet("budget")}>
         {filters.maxPrice != null ? `تا ${formatToman(filters.maxPrice)}` : filters.minPrice != null ? `از ${formatToman(filters.minPrice)}` : "بودجه"}
+      </Chip>
+      <Chip active={Boolean(filters.visitAt)} icon={<CalendarClock className="size-4" />} onClick={() => setSheet("when")}>
+        {filters.visitAt ? visitChipLabel(filters.visitAt) : "همین الان"}
       </Chip>
       <Chip active={filters.openOnArrival} icon={<Clock className="size-4" />} onClick={() => toggle("openOnArrival")}>
         باز موقع رسیدن
@@ -83,6 +86,7 @@ export function ContextBar({ className, showLocation = true }: { className?: str
       </Sheet>
 
       <BudgetSheet open={sheet === "budget"} onClose={() => setSheet(null)} />
+      <WhenSheet open={sheet === "when"} onClose={() => setSheet(null)} />
 
       <Sheet open={sheet === "more"} onOpenChange={(o) => !o && setSheet(null)} title="اولویت و شرایط مراجعه">
         <p className="mb-2 text-sm font-semibold">چی برات مهم‌تره؟</p>
@@ -159,6 +163,54 @@ function BudgetSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
         />
         <Button type="submit" variant="secondary">ثبت</Button>
       </form>
+    </Sheet>
+  );
+}
+
+function visitChipLabel(iso: string) {
+  const d = new Date(iso);
+  const days = Math.floor((d.getTime() - Date.now() + tehranClock(new Date()).minutes * 60_000) / 86_400_000);
+  const day = days <= 0 ? "امروز" : days === 1 ? "فردا" : new Intl.DateTimeFormat("fa-IR", { weekday: "long", timeZone: "Asia/Tehran" }).format(d);
+  return `${day} ${formatClock(tehranClock(d).minutes)}`;
+}
+
+/** Absolute time for "today/tomorrow at HH:MM" in Tehran. */
+function at(dayOffset: number, minutes: number) {
+  const now = new Date();
+  const nowMin = tehranClock(now).minutes;
+  const midnight = now.getTime() - nowMin * 60_000 - (now.getTime() % 60_000);
+  return new Date(midnight + dayOffset * 86_400_000 + minutes * 60_000).toISOString();
+}
+
+function WhenSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { filters, setFilters } = useApp();
+  const nowMin = tehranClock(new Date()).minutes;
+  const options = [
+    { label: "همین الان", value: null as string | null },
+    { label: "یک ساعت دیگر", value: new Date(Date.now() + 3_600_000).toISOString() },
+    ...(nowMin < 17 * 60 ? [{ label: "امروز عصر (۱۷)", value: at(0, 17 * 60) }] : []),
+    ...(nowMin < 20 * 60 ? [{ label: "امشب (۲۰)", value: at(0, 20 * 60) }] : []),
+    { label: "فردا صبح (۱۰)", value: at(1, 10 * 60) },
+    { label: "فردا عصر (۱۷)", value: at(1, 17 * 60) },
+  ];
+  return (
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()} title="کی می‌خوای بری؟" description="باز بودن مغازه‌ها و پیشنهادها برای همان زمان حساب می‌شود.">
+      <div className="grid grid-cols-2 gap-2">
+        {options.map((o) => (
+          <Button
+            key={o.label}
+            variant={(filters.visitAt ?? null) === o.value || (o.value && filters.visitAt && Math.abs(new Date(o.value).getTime() - new Date(filters.visitAt).getTime()) < 120_000) ? "primary" : "outline"}
+            onClick={() => {
+              haptic();
+              setFilters({ visitAt: o.value, openOnArrival: o.value ? true : filters.openOnArrival });
+              onClose();
+            }}
+          >
+            {o.label}
+          </Button>
+        ))}
+      </div>
+      <p className="mt-4 text-[12px] leading-5 text-muted">نکته: بسیاری از مغازه‌های مرکز شهر پنجشنبه زودتر می‌بندند و جمعه تعطیل‌اند.</p>
     </Sheet>
   );
 }

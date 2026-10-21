@@ -4,12 +4,14 @@ import { z } from "zod";
 import { searchProducts } from "../server/search";
 import { getProductsByIds, shopsForProduct, withNearby } from "../server/catalog";
 import { buildTrip } from "../server/trip";
+import { listInquiries } from "../server/inquiries";
 import type { Filters, Origin, ProductDetail, ShopOffer } from "../types";
 
 export interface ToolCtx {
   origin: Origin;
   filters: Filters;
   known: Map<string, unknown>;
+  sessionId: string;
 }
 
 const compactOffer = (o: ShopOffer) => ({
@@ -101,10 +103,19 @@ export function buildTools(ctx: ToolCtx) {
     }),
 
     compareProducts: tool({
-      description: "مقایسه ۲ یا ۳ محصول از نظر قیمت، تعداد فروشنده و مشخصات فنی.",
-      inputSchema: z.object({ productIds: z.array(z.string()).min(2).max(3) }),
-      execute: async ({ productIds }) => {
-        const products = await withNearby(await getProductsByIds(productIds), ctx.origin);
+      description:
+        "مقایسه ۲ یا ۳ محصول از نظر قیمت، تعداد فروشنده و مشخصات فنی. اگر شناسه محصول را داری productIds بده؛ اگر فقط اسم را می‌دانی names بده تا خودم پیدا کنم (نیازی به searchCatalog قبلش نیست).",
+      inputSchema: z.object({
+        productIds: z.array(z.string()).max(3).optional(),
+        names: z.array(z.string()).max(3).optional().describe("نام محصولات، مثل «ایرپاد پرو ۲»"),
+      }),
+      execute: async ({ productIds, names }) => {
+        const ids = [...(productIds ?? [])];
+        for (const n of names ?? []) {
+          const [hit] = await searchProducts({ q: n, limit: 1 });
+          if (hit && !ids.includes(hit.id)) ids.push(hit.id);
+        }
+        const products = await withNearby(await getProductsByIds(ids.slice(0, 3)), ctx.origin);
         return {
           products: products.map(({ specs: _s, images: _i, ...p }) => p),
           rows: alignSpecs(products),
@@ -130,12 +141,55 @@ export function buildTools(ctx: ToolCtx) {
     }),
 
     proposeInquiry: tool({
-      description: "پیشنهاد ارسال استعلام قیمت/موجودی به چند فروشنده؛ کاربر با یک لمس تأیید و ارسال می‌کند.",
-      inputSchema: z.object({ productId: z.string(), shopIds: z.array(z.string()).min(1).max(5) }),
-      execute: async ({ productId, shopIds }) => {
+      description:
+        "آماده کردن استعلام قیمت/موجودی از فروشنده‌ها؛ کاربر با یک لمس ارسال می‌کند. اگر shopIds را نمی‌دانی خالی بگذار تا ۳ فروشنده برتر و باز خودکار انتخاب شوند (لازم نیست اول findShops بزنی).",
+      inputSchema: z.object({ productId: z.string(), shopIds: z.array(z.string()).max(5).optional(), count: z.number().int().min(1).max(5).optional() }),
+      execute: async ({ productId, shopIds, count }) => {
         const data = await shopsForProduct({ productId, origin: ctx.origin, filters: ctx.filters });
-        const offers = (data?.offers ?? []).filter((o) => shopIds.includes(o.shop.id));
+        const all = (data?.offers ?? []).filter((o) => !(o.confirmation && !o.confirmation.available));
+        const offers = shopIds?.length
+          ? all.filter((o) => shopIds.includes(o.shop.id))
+          : all.filter((o) => o.open.state !== "closed").slice(0, count ?? 3);
         return { productId, productTitle: data?.product.title ?? "", offers: offers.map(compactOffer) };
+      },
+    }),
+
+    suggestList: tool({
+      description:
+        "برای نیازهای پروژه‌ای یا چندقلمی (مثل «برق‌کشی یک واحد»، «راه‌اندازی دوربین مغازه»، «وسایل اولیه آشپزخانه») یک لیست خرید عملی بساز با مقدار تقریبی و دلیل؛ کاربر می‌تواند با یک لمس سفر خرید بچیند.",
+      inputSchema: z.object({
+        title: z.string(),
+        items: z
+          .array(z.object({ label: z.string().describe("نام قابل‌جستجو، کوتاه، مثل «سیم افشان ۲.۵»"), qty: z.string().optional(), why: z.string().optional() }))
+          .min(2)
+          .max(10),
+        tip: z.string().optional().describe("یک نکته کوتاه حرفه‌ای"),
+      }),
+      execute: async ({ title, items, tip }) => {
+        const withCounts = await Promise.all(
+          items.map(async (it) => {
+            const [top] = await withNearby(await searchProducts({ q: it.label, limit: 1 }), ctx.origin);
+            return { ...it, sample: top ? { id: top.id, title: top.title, priceMin: top.priceMin, sellers: top.sellerCount, nearby: top.nearbySellers ?? 0 } : null };
+          }),
+        );
+        return { title, items: withCounts, tip: tip ?? null };
+      },
+    }),
+
+    myInquiries: tool({
+      description: "وضعیت استعلام‌هایی که کاربر از فروشنده‌ها گرفته (چه کسی تأیید کرد، قیمت جدید، رزرو، چه کسی جواب نداد).",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const list = await listInquiries(ctx.sessionId, 5);
+        return {
+          inquiries: list.map((i) => ({
+            id: i.id,
+            product: i.productTitle,
+            productId: i.productId,
+            createdAt: i.createdAt,
+            targets: i.targets.map((t) => ({ shop: t.shopName, shopId: t.shopId, mall: t.mallName, status: t.status, price: t.replyPrice ?? t.listedPrice, holdUntil: t.holdUntil, alt: t.altProductTitle })),
+          })),
+        };
       },
     }),
 

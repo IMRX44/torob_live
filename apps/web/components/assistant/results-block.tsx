@@ -62,6 +62,11 @@ export function ResultsBlock({ data, live }: { data: QuickResults; live: boolean
           <Badge key={c} tone="brand">{c}</Badge>
         ))}
       </div>
+      {data.dropped?.length ? (
+        <p className="mb-2 px-1 text-[11px] text-subtle">
+          «{data.dropped.join("، ")}» در عنوان کالاها نبود؛ با بقیه کلمات گشتم و دستیار بر اساس کاربرد انتخاب می‌کند.
+        </p>
+      ) : null}
       {relaxed.length ? (
         <p className="mb-2 flex items-start gap-1.5 rounded-2xl bg-info-soft px-3 py-2 text-[12px] leading-5">
           <Info className="mt-0.5 size-4 shrink-0 text-info" />
