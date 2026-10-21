@@ -61,3 +61,46 @@ export function clusterByWalk<T extends LatLon>(points: T[], eps = 220): Hub<T>[
     })
     .sort((a, b) => b.members.length - a.members.length);
 }
+
+/**
+ * Compact hubs: points sharing a `group` key (e.g. the same mall) always stay together;
+ * the rest join the nearest hub whose center is within `eps`, otherwise start a new one.
+ * Unlike single-linkage this never chains a whole dense district into one blob.
+ */
+export function clusterCompact<T extends LatLon>(points: T[], eps = 180, group?: (p: T) => string | null): Hub<T>[] {
+  const hubs: { key: string | null; members: T[]; center: LatLon }[] = [];
+  const keyed = new Map<string, (typeof hubs)[number]>();
+  for (const p of points) {
+    const k = group?.(p) ?? null;
+    if (k) {
+      const h = keyed.get(k);
+      if (h) {
+        h.members.push(p);
+        h.center = centroid(h.members);
+      } else {
+        const nh = { key: k, members: [p], center: { lat: p.lat, lon: p.lon } };
+        keyed.set(k, nh);
+        hubs.push(nh);
+      }
+    }
+  }
+  for (const p of points) {
+    if (group?.(p)) continue;
+    let best: (typeof hubs)[number] | null = null;
+    let bestD = Infinity;
+    for (const h of hubs) {
+      const d = haversine(h.center, p);
+      if (d < eps && d < bestD) {
+        best = h;
+        bestD = d;
+      }
+    }
+    if (best) {
+      best.members.push(p);
+      if (!best.key) best.center = centroid(best.members);
+    } else hubs.push({ key: null, members: [p], center: { lat: p.lat, lon: p.lon } });
+  }
+  return hubs
+    .map((h) => ({ center: h.center, members: h.members, radius: Math.max(0, ...h.members.map((m) => haversine(h.center, m))) }))
+    .sort((a, b) => b.members.length - a.members.length);
+}

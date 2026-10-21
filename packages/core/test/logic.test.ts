@@ -120,3 +120,17 @@ describe("trip", () => {
     expect(order.map((s) => `${s.floor}/${s.unit}`)).toEqual(["0/3", "0/24", "2/201", "-1/5"]);
   });
 });
+
+import { clusterCompact } from "../src/geo";
+describe("clusterCompact", () => {
+  it("keeps malls together and does not chain", () => {
+    const line = Array.from({ length: 10 }, (_, i) => ({ lat: 35.69 + i * 0.0012, lon: 51.4, mall: null as string | null }));
+    const hubs = clusterCompact(line, 180, (p) => p.mall);
+    expect(Math.max(...hubs.map((h) => h.members.length))).toBeLessThan(5);
+    const mall = [
+      { lat: 35.69, lon: 51.4, mall: "a" },
+      { lat: 35.699, lon: 51.4, mall: "a" },
+    ];
+    expect(clusterCompact(mall, 50, (p) => p.mall)).toHaveLength(1);
+  });
+});
