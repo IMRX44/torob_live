@@ -31,7 +31,7 @@ export function FreshnessBadge({ freshness, changedAt, confirmation }: { freshne
   if (confirmation?.available) {
     return (
       <Badge tone="ok" icon={<BadgeCheck className="size-3.5" />} title="فروشنده قیمت و موجودی را از طریق ترب حضوری تأیید کرده">
-        {confirmation.source === "seller" ? "تأیید فروشنده" : "گزارش کاربر"} · {formatAgo(confirmation.at)}
+        {confirmation.source === "seller" ? "تأیید فروشنده" : "گزارش کاربر"}، {formatAgo(confirmation.at)}
       </Badge>
     );
   }
@@ -39,7 +39,7 @@ export function FreshnessBadge({ freshness, changedAt, confirmation }: { freshne
   return (
     <Badge tone={f.tone} icon={<History className="size-3.5" />} title="زمان آخرین تغییر قیمت در ترب؛ به معنی تأیید موجودی نیست">
       {f.label}
-      {changedAt ? ` · ${formatAgo(changedAt)}` : ""}
+      {changedAt ? `، ${formatAgo(changedAt)}` : ""}
     </Badge>
   );
 }
@@ -49,19 +49,19 @@ export function StockBadge({ offer }: { offer: Pick<ShopOffer, "listed" | "confi
     return offer.confirmation.available ? (
       <Badge tone="ok" icon={<BadgeCheck className="size-3.5" />}>موجود (تأییدشده)</Badge>
     ) : (
-      <Badge tone="bad" icon={<CircleSlash className="size-3.5" />}>ندارد · {formatAgo(offer.confirmation.at)}</Badge>
+      <Badge tone="bad" icon={<CircleSlash className="size-3.5" />}>ندارد، {formatAgo(offer.confirmation.at)}</Badge>
     );
   }
   if (!offer.listed) {
     return (
       <Badge tone="neutral" icon={<HelpCircle className="size-3.5" />} title="این فروشگاه فقط در این صنف ثبت شده؛ دسته فعالیت به معنی موجود بودن محصول نیست">
-        فقط صنف مرتبط · نامشخص
+        فقط صنف مرتبط، نامشخص
       </Badge>
     );
   }
   return (
     <Badge tone="neutral" icon={<Store className="size-3.5" />} title="فروشنده این محصول را ثبت کرده ولی موجودی لحظه‌ای تأیید نشده">
-      ثبت‌شده · موجودی تأیید نشده
+      ثبت‌شده، موجودی تأیید نشده
     </Badge>
   );
 }
@@ -87,7 +87,7 @@ export function PaymentBadges({ payments, compact }: { payments: PaymentOption[]
   if (!payments.length) return compact ? null : <Badge tone="neutral" icon={<CreditCard className="size-3.5" />}>خرید قسطی اعلام نشده</Badge>;
   if (compact) {
     return (
-      <Badge tone="info" icon={<CreditCard className="size-3.5" />} title={payments.map((p) => `${p.provider} · ${channelLabel(p.channel)}`).join("\n")}>
+      <Badge tone="info" icon={<CreditCard className="size-3.5" />} title={payments.map((p) => `${p.provider}، ${channelLabel(p.channel)}`).join("\n")}>
         قسطی: {[...new Set(payments.map((p) => PROVIDER_SHORT[p.providerKey]))].join("، ")}
       </Badge>
     );
@@ -96,7 +96,7 @@ export function PaymentBadges({ payments, compact }: { payments: PaymentOption[]
     <div className="flex flex-wrap gap-1.5">
       {payments.map((p) => (
         <Badge key={p.provider + p.channel} tone={p.channel === "in_person" ? "info" : "neutral"} icon={<CreditCard className="size-3.5" />}>
-          {p.provider} · {channelLabel(p.channel)}
+          {p.provider}، {channelLabel(p.channel)}
         </Badge>
       ))}
     </div>
@@ -108,7 +108,7 @@ export function WarrantyBadge({ warranty }: { warranty: Warranty | null }) {
   const parts = [warranty.provider, warranty.months ? `${toPersianDigits(warranty.months)} ماهه` : null, warranty.description].filter(Boolean);
   return (
     <Badge tone="info" icon={<ShieldCheck className="size-3.5" />} className="max-w-full truncate">
-      {parts.join(" · ") || "گارانتی"}
+      {parts.join("، ") || "گارانتی"}
     </Badge>
   );
 }

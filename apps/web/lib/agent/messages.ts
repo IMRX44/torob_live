@@ -24,6 +24,8 @@ export interface WherePayload {
   openCount: number;
   visitLabel: string | null;
   trafficZone: boolean;
+  /** nobody is open at the planned time; list shows when they open */
+  allClosed?: boolean;
 }
 
 export interface PicksPayload {

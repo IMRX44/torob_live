@@ -31,12 +31,12 @@ export function ListCard({ data }: { data: { title: string; items: Item[]; tip: 
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-semibold">
                   {it.label}
-                  {it.qty ? <span className="ms-1.5 text-[11px] font-normal text-muted">· {it.qty}</span> : null}
+                  {it.qty ? <span className="ms-1.5 text-[11px] font-normal text-muted">، {it.qty}</span> : null}
                 </p>
                 {it.why ? <p className="text-[11px] leading-5 text-muted">{it.why}</p> : null}
                 {it.sample ? (
                   <Link href={`/p/${it.sample.id}`} className="mt-0.5 block truncate text-[11px] text-brand">
-                    {it.sample.priceMin ? `از ${formatToman(it.sample.priceMin)}` : "قیمت ثبت نشده"} · {toPersianDigits(it.sample.nearby || it.sample.sellers)} فروشنده
+                    {it.sample.priceMin ? `از ${formatToman(it.sample.priceMin)}` : "قیمت ثبت نشده"}، {toPersianDigits(it.sample.nearby || it.sample.sellers)} فروشنده
                   </Link>
                 ) : (
                   <p className="text-[11px] text-subtle">در کاتالوگ پیدا نشد؛ حضوری بپرسید</p>

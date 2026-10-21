@@ -145,7 +145,7 @@ export function ShopsCard({ data }: { data: { product: { id: string; title: stri
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-semibold">{o.name}</p>
                 <p className="truncate text-[11px] text-muted">
-                  {[o.mall, floorLabel(o.floor), o.unit ? `واحد ${toPersianDigits(o.unit)}` : null].filter(Boolean).join(" · ") || "—"}
+                  {[o.mall, floorLabel(o.floor), o.unit ? `واحد ${toPersianDigits(o.unit)}` : null].filter(Boolean).join("، ") || "—"}
                 </p>
                 <div className="mt-1 flex flex-wrap gap-1">
                   <HoursBadge open={o.open} />
@@ -156,7 +156,7 @@ export function ShopsCard({ data }: { data: { product: { id: string; title: stri
               </div>
               <div className="shrink-0 text-end">
                 <p className="text-[13px] font-bold">{o.price ? formatToman(o.price) : "بپرسید"}</p>
-                <p className="text-[10px] text-muted">{formatDistance(o.distanceM)} · {formatMinutes(o.etaMin)}</p>
+                <p className="text-[10px] text-muted">{formatDistance(o.distanceM)}، {formatMinutes(o.etaMin)}</p>
                 {o.priceChangedAt ? <p className="text-[10px] text-subtle">{formatAgo(o.priceChangedAt)}</p> : null}
               </div>
             </Link>
@@ -232,7 +232,7 @@ export function TripCard({ data }: { data: TripData }) {
   return (
     <Card>
       <p className="flex items-center gap-1.5 text-[13px] font-bold">
-        <Route className="size-4 text-brand" /> سفر خرید: {toPersianDigits(data.stops.length)} توقف · حدود {formatMinutes(data.totalMinutes)}
+        <Route className="size-4 text-brand" /> سفر خرید: {toPersianDigits(data.stops.length)} توقف، حدود {formatMinutes(data.totalMinutes)}
       </p>
       <ol className="relative mt-3 space-y-3 border-s-2 border-dashed border-line ps-4">
         {data.stops.map((s) => (
@@ -240,14 +240,14 @@ export function TripCard({ data }: { data: TripData }) {
             <span className="absolute -start-[23px] top-1 size-3 rounded-full border-2 border-elev bg-brand" />
             <p className="text-[11px] text-muted">
               <Clock className="me-1 inline size-3" />
-              رسیدن {t(s.arriveAt)} · {formatMinutes(s.travelMin)} {s.travelMode === "walk" ? "پیاده" : "با ماشین"}
+              رسیدن {t(s.arriveAt)}، {formatMinutes(s.travelMin)} {s.travelMode === "walk" ? "پیاده" : "با ماشین"}
             </p>
             <Link href={`/s/${s.shopId}`} className="text-[13px] font-semibold">
               {s.name}
             </Link>
             <p className="text-[11px] text-muted">
               <Building2 className="me-1 inline size-3" />
-              {[s.mall, floorLabel(s.floor), s.unit ? `واحد ${toPersianDigits(s.unit)}` : null].filter(Boolean).join(" · ") || "—"}
+              {[s.mall, floorLabel(s.floor), s.unit ? `واحد ${toPersianDigits(s.unit)}` : null].filter(Boolean).join("، ") || "—"}
             </p>
             <div className="mt-1 flex flex-wrap gap-1">
               {s.items.map((it) => (

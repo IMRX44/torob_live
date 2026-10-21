@@ -18,7 +18,7 @@ export function ShopLocationLine({ shop }: { shop: ShopOffer["shop"] }) {
   return (
     <p className="flex items-center gap-1 truncate text-xs text-muted">
       <Building2 className="size-3.5 shrink-0" />
-      <span className="truncate">{parts.join(" · ")}</span>
+      <span className="truncate">{parts.join("، ")}</span>
     </p>
   );
 }
@@ -82,7 +82,7 @@ export function ShopOfferCard({
               {offer.distanceM != null ? (
                 <p className="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-muted">
                   <ModeIcon className="size-3.5" />
-                  {formatDistance(offer.distanceM)} · {formatMinutes(offer.etaMin ?? 0)}
+                  {formatDistance(offer.distanceM)}، {formatMinutes(offer.etaMin ?? 0)}
                 </p>
               ) : null}
             </div>

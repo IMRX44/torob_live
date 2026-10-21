@@ -79,7 +79,7 @@ export function SellerInbox({ shop }: { shop: Shop }) {
           <div className="min-w-0 flex-1">
             <h1 className="truncate font-black">{shop.name}</h1>
             <p className="truncate text-[11px] text-muted">
-              {[shop.mallName, floorLabel(shop.floor), shop.unit ? `واحد ${toPersianDigits(shop.unit)}` : null].filter(Boolean).join(" · ")}
+              {[shop.mallName, floorLabel(shop.floor), shop.unit ? `واحد ${toPersianDigits(shop.unit)}` : null].filter(Boolean).join("، ")}
             </p>
           </div>
           <span className="flex items-center gap-1 rounded-full bg-ok-soft px-2.5 py-1 text-[11px] font-semibold text-ok">
@@ -341,7 +341,7 @@ function MyProducts() {
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-1 text-[13px] font-medium">{p.title}</p>
                 <p className="text-[11px] text-muted">
-                  {p.price ? formatToman(Number(p.price)) : "بدون قیمت"} ·{" "}
+                  {p.price ? formatToman(Number(p.price)) : "بدون قیمت"}،{" "}
                   {fresh ? (p.confirmed_available ? `تأیید شد ${formatAgo(p.confirmed_at)}` : "ناموجود اعلام شد") : `قیمت ${formatAgo(p.price_changed_at)}`}
                 </p>
               </div>

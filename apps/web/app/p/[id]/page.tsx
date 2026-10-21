@@ -42,7 +42,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
             <PriceRange min={product.priceMin} max={product.priceMax} className="text-lg" />
             <span className="text-xs text-muted">
-              {toPersianDigits(product.sellerCount)} فروشنده · آخرین تغییر قیمت {formatAgo(product.lastChange)}
+              {toPersianDigits(product.sellerCount)} فروشنده، آخرین تغییر قیمت {formatAgo(product.lastChange)}
             </span>
           </div>
           <p className="mt-1 text-[11px] text-subtle">بازه قیمت ثبت‌شده در ترب؛ موجودی لحظه‌ای را با استعلام بپرسید.</p>

@@ -4,7 +4,7 @@ import { cn } from "@/lib/cn";
 
 export function Price({ value, quality, className, struck }: { value: number | null; quality?: string; className?: string; struck?: number | null }) {
   if (quality === "outlier") return <span className={cn("text-sm text-muted", className)}>قیمت نامعتبر ثبت شده</span>;
-  if (value == null) return <span className={cn("text-sm text-muted", className)}>قیمت ثبت نشده · بپرسید</span>;
+  if (value == null) return <span className={cn("text-sm text-muted", className)}>قیمت ثبت نشده، بپرسید</span>;
   return (
     <span className={cn("font-bold tabular", className)}>
       {formatToman(value)}

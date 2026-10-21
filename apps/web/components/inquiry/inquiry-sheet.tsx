@@ -80,7 +80,7 @@ export function InquirySheet({
         {offers.map((o) => (
           <span key={o.shop.id} className="rounded-full bg-sunken px-3 py-1 text-xs font-medium">
             {o.shop.name}
-            {o.shop.mallName ? <span className="text-muted"> · {o.shop.mallName}</span> : null}
+            {o.shop.mallName ? <span className="text-muted">، {o.shop.mallName}</span> : null}
           </span>
         ))}
       </div>

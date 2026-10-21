@@ -66,14 +66,22 @@ export async function quickResults(text: string, origin: Origin, filters: Filter
 
 /** The product a "where should I go" question most likely means: many sellers near the user, high in ranking. */
 export function likelyProduct(items: ProductSummary[]): ProductSummary | null {
-  const top = items.slice(0, 6);
+  const top = items.slice(0, 6).filter((i) => i.sellerCount > 0);
   if (!top.length) return null;
-  return [...top].sort((a, b) => (b.nearbySellers ?? b.sellerCount) - (a.nearbySellers ?? a.sellerCount))[0]!;
+  const score = (p: ProductSummary) => (p.nearbySellers ?? 0) * 2 + p.sellerCount;
+  return [...top].sort((a, b) => score(b) - score(a))[0]!;
 }
 
 export async function whereFor(productId: string, origin: Origin, filters: Filters): Promise<WherePayload | null> {
-  const data = await shopsForProduct({ productId, origin, filters });
+  let data = await shopsForProduct({ productId, origin, filters });
   if (!data) return null;
+  let allClosed = false;
+  if (!data.offers.length && filters.openOnArrival) {
+    // Nobody is open at that time: still say where to go, and when they open.
+    data = (await shopsForProduct({ productId, origin, filters: { ...filters, openOnArrival: false } }))!;
+    allClosed = data.offers.length > 0;
+  }
+  if (!data.offers.length) return null;
   const listed = data.offers.filter((o) => !(o.confirmation && !o.confirmation.available));
   return {
     product: data.product,
@@ -83,6 +91,7 @@ export async function whereFor(productId: string, origin: Origin, filters: Filte
     openCount: data.offers.filter((o) => o.open.state === "open").length,
     visitLabel: visitLabel(filters),
     trafficZone: data.trafficZone,
+    allClosed,
   };
 }
 

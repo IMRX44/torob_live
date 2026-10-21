@@ -42,7 +42,7 @@ export function SideNav() {
         })}
       </ul>
       <p className="mt-auto px-2 text-[11px] leading-5 text-subtle">
-        داده‌ها از دیتاست ترب · قیمت ثبت‌شده با موجودی تأییدشده یکی نیست.
+        داده‌ها از دیتاست ترب، قیمت ثبت‌شده با موجودی تأییدشده یکی نیست.
       </p>
     </aside>
   );

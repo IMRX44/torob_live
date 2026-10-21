@@ -115,7 +115,7 @@ export function openInfo(shop: ShopSummary, at: Date, override?: { today_close: 
   let label = "بسته";
   if (st.opensAt) {
     const when = st.opensAt.inDays === 0 ? "امروز" : st.opensAt.inDays === 1 ? "فردا" : DAY_LABEL[st.opensAt.day];
-    label = `بسته · ${when} ساعت ${formatClock(st.opensAt.minutes)} باز می‌شود`;
+    label = `بسته، ${when} ساعت ${formatClock(st.opensAt.minutes)} باز می‌شود`;
   }
   return { state: "closed", label, openAfterArrival: 0, closingSoon: false };
 }

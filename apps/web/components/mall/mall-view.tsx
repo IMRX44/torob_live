@@ -104,8 +104,8 @@ export function MallView({ mall, product }: { mall: MallDetail; product: { id: s
               <p className="mt-1 text-lg font-black">{next.name}</p>
               <p className="text-[13px] opacity-90">
                 {floorName(next.floor)}
-                {next.unit ? ` · واحد ${toPersianDigits(next.unit)}` : ""}
-                {next.productHint?.price ? ` · ${formatToman(next.productHint.price)}` : ""}
+                {next.unit ? `، واحد ${toPersianDigits(next.unit)}` : ""}
+                {next.productHint?.price ? `، ${formatToman(next.productHint.price)}` : ""}
               </p>
             </motion.div>
           ) : Object.values(checks).includes("has") ? null : (
@@ -127,7 +127,7 @@ export function MallView({ mall, product }: { mall: MallDetail; product: { id: s
                         <p className="truncate text-[14px] font-bold">{s.name}</p>
                         <p className="text-[12px] text-muted">
                           {floorName(s.floor)}
-                          {s.unit ? ` · واحد ${toPersianDigits(s.unit)}` : ""}
+                          {s.unit ? `، واحد ${toPersianDigits(s.unit)}` : ""}
                         </p>
                       </Link>
                       <b className="shrink-0 text-[13px]">{s.productHint?.price ? formatToman(s.productHint.price) : "بپرسید"}</b>
@@ -191,7 +191,7 @@ export function MallView({ mall, product }: { mall: MallDetail; product: { id: s
                               <span className={s.open.state === "open" ? "text-ok" : s.open.state === "closed" ? "text-bad" : "text-subtle"}>
                                 {s.open.state === "open" ? "باز" : s.open.state === "closed" ? "بسته" : "ساعت نامشخص"}
                               </span>
-                              {s.productHint ? <span className="ms-1 font-bold text-brand">· {s.productHint.price ? formatToman(s.productHint.price) : "دارد"}</span> : null}
+                              {s.productHint ? <span className="ms-1 font-bold text-brand">، {s.productHint.price ? formatToman(s.productHint.price) : "دارد"}</span> : null}
                             </p>
                           </Link>
                         </li>

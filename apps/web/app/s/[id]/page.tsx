@@ -76,7 +76,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
             <p className="mt-0.5 line-clamp-2 text-[13px] font-semibold">{focus[0].seller_title || focus[0].title}</p>
             <p className="mt-1 flex items-center justify-between text-[13px]">
               <b>{focus[0].price ? formatToman(Number(focus[0].price)) : "قیمت ثبت نشده"}</b>
-              <span className="text-[11px] text-muted">قیمت ثبت‌شده {formatAgo(focus[0].price_changed_at)} · موجودی تأیید نشده</span>
+              <span className="text-[11px] text-muted">قیمت ثبت‌شده {formatAgo(focus[0].price_changed_at)}، موجودی تأیید نشده</span>
             </p>
           </div>
         ) : null}
@@ -220,7 +220,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
                       <p className="truncate text-[12px] font-semibold">{n.name}</p>
                       <p className="truncate text-[11px] text-muted">
                         <Building2 className="me-1 inline size-3" />
-                        {[floorLabel(n.floor), n.unit ? toPersianDigits(n.unit) : null].filter(Boolean).join(" · ") || "—"}
+                        {[floorLabel(n.floor), n.unit ? toPersianDigits(n.unit) : null].filter(Boolean).join("، ") || "—"}
                       </p>
                     </Link>
                   </li>

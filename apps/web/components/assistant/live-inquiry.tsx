@@ -42,8 +42,8 @@ export function LiveInquiry({ id }: { id: string }) {
           <p className="text-[12px] opacity-90">✅ فروشنده تأیید کرد؛ برو همین‌جا</p>
           <p className="mt-0.5 text-[16px] font-black">{best.shopName}</p>
           <p className="text-[12px] opacity-90">
-            {best.mallName ?? ""} {best.unit ? `· واحد ${toPersianDigits(best.unit)}` : ""} · {formatToman(best.replyPrice ?? best.listedPrice)}
-            {best.holdUntil ? ` · نگه داشته تا ${new Intl.DateTimeFormat("fa-IR", { timeZone: "Asia/Tehran", hour: "2-digit", minute: "2-digit" }).format(new Date(best.holdUntil))}` : ""}
+            {best.mallName ?? ""} {best.unit ? `، واحد ${toPersianDigits(best.unit)}` : ""}، {formatToman(best.replyPrice ?? best.listedPrice)}
+            {best.holdUntil ? `، نگه داشته تا ${new Intl.DateTimeFormat("fa-IR", { timeZone: "Asia/Tehran", hour: "2-digit", minute: "2-digit" }).format(new Date(best.holdUntil))}` : ""}
           </p>
           <div className="mt-2.5 flex gap-2">
             <a className="flex-1" href={`https://www.google.com/maps/dir/?api=1&destination=${best.lat},${best.lon}`} target="_blank" rel="noreferrer">
@@ -70,7 +70,7 @@ export function LiveInquiry({ id }: { id: string }) {
               <span className="min-w-0 flex-1 truncate font-medium">{t.shopName}</span>
               <span className={cn("shrink-0", good ? "text-ok" : bad ? "text-bad" : "text-muted")}>
                 {LABEL[t.status]}
-                {t.replyPrice ? ` · ${formatToman(t.replyPrice)}` : ""}
+                {t.replyPrice ? `، ${formatToman(t.replyPrice)}` : ""}
               </span>
             </li>
           );

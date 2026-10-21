@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ترب حضوری · دستیار خرید حضوری",
+    name: "ترب حضوری، دستیار خرید حضوری",
     short_name: "ترب حضوری",
     description: "پیدا کن، مقایسه کن، از فروشنده بپرس و حضوری بخر.",
     start_url: "/",

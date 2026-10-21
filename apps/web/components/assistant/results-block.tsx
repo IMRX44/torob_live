@@ -27,14 +27,14 @@ export function ResultsBlock({ data, live }: { data: QuickResults; live: boolean
   const [relaxed, setRelaxed] = useState(data.relaxed);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const first = useRef(true);
+  const computedFor = useRef(JSON.stringify({ o: [data.origin.lat, data.origin.lon], f: data.filters }));
 
   useEffect(() => {
     if (!live) return;
-    if (first.current) {
-      first.current = false;
-      return;
-    }
+    const key = JSON.stringify({ o: [origin.lat, origin.lon], f: { ...data.filters, ...filters } });
+    // Results already match these settings (e.g. the bar just adopted what we parsed from the message).
+    if (key === computedFor.current || JSON.stringify({ o: [origin.lat, origin.lon], f: filters }) === JSON.stringify({ o: [data.origin.lat, data.origin.lon], f: data.filters })) return;
+    computedFor.current = key;
     const c = new AbortController();
     setLoading(true);
     const p = contextParams(origin, filters);

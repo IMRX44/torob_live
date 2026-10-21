@@ -45,12 +45,17 @@ export function WhereCard({ data }: { data: WherePayload }) {
           <p className="text-[11px] text-muted">کجا برم؟</p>
           <p className="line-clamp-1 text-[13px] font-bold">{data.product.title}</p>
           <p className="text-[11px] text-muted">
-            {toPersianDigits(data.total)} فروشنده · {toPersianDigits(data.openCount)} تا باز{data.visitLabel ? ` برای ${data.visitLabel}` : " موقع رسیدن"}
+            {toPersianDigits(data.total)} فروشنده، {toPersianDigits(data.openCount)} تا باز{data.visitLabel ? ` برای ${data.visitLabel}` : " موقع رسیدن"}
           </p>
         </div>
         <ChevronLeft className="size-4 text-muted" />
       </Link>
 
+      {data.allClosed ? (
+        <p className="mx-3 mb-2 rounded-xl bg-warn-soft px-3 py-1.5 text-[11px]">
+          هیچ فروشنده‌ای موقع رسیدن باز نیست؛ ساعت باز شدنشان را ببینید یا زمان دیگری انتخاب کنید.
+        </p>
+      ) : null}
       {data.visitLabel ? (
         <p className="mx-3 mb-2 flex items-center gap-1.5 rounded-xl bg-info-soft px-3 py-1.5 text-[11px]">
           <CalendarClock className="size-3.5 text-info" /> ساعت کاری مغازه‌ها برای «{data.visitLabel}» بررسی شد
@@ -68,7 +73,7 @@ export function WhereCard({ data }: { data: WherePayload }) {
           <p className="mt-1 text-[16px] font-black">{data.hub.label}</p>
           <p className="text-[12px] opacity-90">
             <Users className="me-1 inline size-3.5" />
-            {toPersianDigits(data.hub.sellerCount)} فروشنده · {toPersianDigits(data.hub.openCount)} باز · {formatDistance(data.hub.distanceM ?? 0)} · {formatMinutes(data.hub.etaMin ?? 0)}
+            {toPersianDigits(data.hub.sellerCount)} فروشنده، {toPersianDigits(data.hub.openCount)} باز، {formatDistance(data.hub.distanceM ?? 0)}، {formatMinutes(data.hub.etaMin ?? 0)}
           </p>
           {pct != null ? (
             <div className="mt-2">
@@ -90,7 +95,7 @@ export function WhereCard({ data }: { data: WherePayload }) {
                 <p className="truncate text-[13px] font-semibold">{o.shop.name}</p>
                 <p className="truncate text-[11px] text-muted">
                   <Building2 className="me-1 inline size-3" />
-                  {[o.shop.mallName, floorLabel(o.shop.floor), o.shop.unit ? `واحد ${toPersianDigits(o.shop.unit)}` : null].filter(Boolean).join(" · ") || o.shop.address}
+                  {[o.shop.mallName, floorLabel(o.shop.floor), o.shop.unit ? `واحد ${toPersianDigits(o.shop.unit)}` : null].filter(Boolean).join("، ") || o.shop.address}
                 </p>
                 <div className="mt-1 flex flex-wrap gap-1">
                   <HoursBadge open={o.open} />

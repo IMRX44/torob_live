@@ -27,7 +27,7 @@ export function HubCard({ hub, productId, onPick, primary }: { hub: HubSummary; 
       <h3 className="mt-2 text-lg font-black">{hub.label}</h3>
       <p className="mt-1 text-sm opacity-90">
         <Users className="me-1 inline size-4" />
-        {toPersianDigits(hub.sellerCount)} فروشنده این کالا در چند قدمی هم · {toPersianDigits(hub.openCount)} تا باز
+        {toPersianDigits(hub.sellerCount)} فروشنده این کالا در چند قدمی هم، {toPersianDigits(hub.openCount)} تا باز
       </p>
       {hub.priceMin != null ? (
         <p className="mt-0.5 text-sm opacity-90">

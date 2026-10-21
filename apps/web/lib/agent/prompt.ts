@@ -68,6 +68,7 @@ export function whereBlock(w: WherePayload) {
     ),
   );
   if (w.trafficZone) lines.push("مقصد داخل محدوده طرح ترافیک است.");
+  if (w.allClosed) lines.push("هیچ‌کدام موقع رسیدن باز نیستند؛ ساعت باز شدن را بگو یا زمان دیگری پیشنهاد بده.");
   lines.push("این اطلاعات همین الان به‌صورت کارت به کاربر نشان داده شده.");
   return lines.join("\n");
 }
