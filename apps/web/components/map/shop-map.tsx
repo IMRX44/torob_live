@@ -21,10 +21,9 @@ export interface MapCircle {
   count: number;
 }
 
-const tiles = (dark: boolean) =>
-  ["a", "b", "c", "d"].map(
-    (s) => `https://${s}.basemaps.cartocdn.com/rastertiles/${dark ? "dark_all" : "voyager"}/{z}/{x}/{y}@2x.png`,
-  );
+/** Raster tiles with Persian labels; swap via NEXT_PUBLIC_TILE_URL (e.g. a Neshan/Map.ir tile server). */
+const TILE_URL = process.env.NEXT_PUBLIC_TILE_URL || "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const TILE_ATTRIBUTION = process.env.NEXT_PUBLIC_TILE_ATTRIBUTION || "© OpenStreetMap contributors";
 
 function isDark() {
   const t = document.documentElement.dataset.theme;
@@ -72,8 +71,16 @@ export function ShopMap({
       container: el.current,
       style: {
         version: 8,
-        sources: { base: { type: "raster", tiles: tiles(isDark()), tileSize: 256, attribution: "© OpenStreetMap · © CARTO" } },
-        layers: [{ id: "base", type: "raster", source: "base" }],
+        sources: { base: { type: "raster", tiles: [TILE_URL], tileSize: 256, maxzoom: 19, attribution: TILE_ATTRIBUTION } },
+        layers: [
+          {
+            id: "base",
+            type: "raster",
+            source: "base",
+            // Light tiles everywhere; in dark mode dim and desaturate them instead of a second provider.
+            paint: isDark() ? { "raster-brightness-max": 0.55, "raster-saturation": -0.6, "raster-contrast": 0.1 } : { "raster-saturation": -0.15 },
+          },
+        ],
       },
       center: [origin?.lon ?? 51.41, origin?.lat ?? 35.7],
       zoom: 14,
@@ -101,8 +108,8 @@ export function ShopMap({
       const node = document.createElement("button");
       node.type = "button";
       node.setAttribute("aria-label", c.label);
-      const size = Math.min(76, 38 + c.count * 3);
-      node.style.cssText = `width:${size}px;height:${size}px;border-radius:9999px;background:color-mix(in oklch,var(--brand) 18%,transparent);border:2px solid var(--brand);display:grid;place-items:center;font:700 13px var(--font-sans);color:var(--brand);backdrop-filter:blur(1px);cursor:pointer`;
+      const size = Math.round(Math.min(48, 24 + Math.sqrt(c.count) * 2.4));
+      node.style.cssText = `width:${size}px;height:${size}px;border-radius:9999px;background:var(--brand);border:2px solid #fff;box-shadow:var(--shadow-md);display:grid;place-items:center;font:700 11px var(--font-sans);color:#fff;cursor:pointer`;
       node.textContent = c.count.toLocaleString("fa-IR");
       node.onclick = (e) => {
         e.stopPropagation();

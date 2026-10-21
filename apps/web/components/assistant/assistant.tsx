@@ -27,7 +27,7 @@ function loadMessages(): AgentMessage[] {
   }
 }
 
-export function Assistant({ malls, categories }: { malls: MallSummary[]; categories: { name: string; shop_count: number }[] }) {
+export function Assistant({ malls, categories, initialQuery }: { malls: MallSummary[]; categories: { name: string; shop_count: number }[]; initialQuery?: string | null }) {
   const [initial] = useState<AgentMessage[]>(() => (typeof window === "undefined" ? [] : loadMessages()));
   const [stage, setStage] = useState<"searching" | "thinking" | "done" | "error" | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -94,6 +94,15 @@ export function Assistant({ malls, categories }: { malls: MallSummary[]; categor
       sessionStorage.removeItem(STORE_KEY);
     } catch {}
   };
+
+  const autoSent = useRef(false);
+  useEffect(() => {
+    if (!initialQuery || autoSent.current) return;
+    autoSent.current = true;
+    window.history.replaceState(null, "", "/");
+    send(initialQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery]);
 
   const lastAssistantIdx = messages.map((m) => m.role).lastIndexOf("assistant");
 

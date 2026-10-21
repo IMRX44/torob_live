@@ -5,7 +5,8 @@ import { sql } from "@/lib/server/db";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q } = await searchParams;
   const [malls, categories] = await Promise.all([
     topMalls(8),
     sql()<{ name: string; shop_count: number }[]>`
@@ -14,7 +15,7 @@ export default async function Home() {
   ]);
   return (
     <AppShell>
-      <Assistant malls={malls} categories={[...categories]} />
+      <Assistant malls={malls} categories={[...categories]} initialQuery={q?.slice(0, 200) ?? null} />
     </AppShell>
   );
 }
